@@ -53,4 +53,44 @@ const char* romanNumeral(int degree, bool minor);
 Note relativeMinorOf(Note majorTonic);
 Note relativeMajorOf(Note minorTonic);
 
+// ---------------------------------------------------------------------------
+// Chord dictionary: used by the chord query page (forward and reverse lookup).
+// ---------------------------------------------------------------------------
+
+struct ChordType {
+    const char* suffix;    // what the user types, "" for a plain major triad
+    const char* label;     // short name for the screen
+    uint8_t     n;         // 3 or 4 chord tones
+    int8_t      semis[4];  // semitone offsets from the root: 0,4,7,10 ...
+    int8_t      degrees[4];  // letter offsets from the root: 0,2,4,6 ...
+};
+
+extern const ChordType kChordTypes[];
+extern const int       kChordTypeCount;
+
+int chordTypeFromSuffix(const char* suffix);  // -1 when unknown
+
+// Spells the chord tones the way a musician writes them (G7 -> G B D F,
+// Db7 -> Db F Ab Cb).
+void spellChord(Note root, int typeIdx, Note out[4]);
+
+bool parseChord(const char* text, Note& root, int& typeIdx);
+void formatChord(Note root, int typeIdx, char* out, int cap);
+Note pcToNote(int pc, bool preferFlats);
+
+struct KeyHit {
+    int8_t  slot;     // 0..11 ring slot
+    bool    minor;    // natural minor key
+    int8_t  degree;   // 0..6, the chord's scale degree in that key
+    uint8_t quality;  // 0=maj 1=min 2=dim 3=aug
+};
+
+// Every key whose diatonic chords contain this exact chord, in circle order.
+int findChordInKeys(Note root, int typeIdx, KeyHit* hits, int maxHits);
+
+// True when the chord behaves as a dominant: it resolves a fifth down.
+bool dominantTarget(Note root, int typeIdx, Note& target);
+
+const char* intervalName(int semis);  // 0->"1", 4->"3", 10->"b7"
+
 }  // namespace mt

@@ -5,8 +5,9 @@
 
 namespace {
 
-constexpr uint32_t kRate = 16000;
+constexpr uint32_t kRate   = 16000;
 constexpr int      kSamples = (int)(kRate * 0.9f);  // 0.9 s of audio, ~28.8 KB
+constexpr int      kMaxVoices = 5;
 
 int16_t gBuf[kSamples];
 
@@ -28,61 +29,59 @@ bool audioBusy()
     return M5.Speaker.isEnabled() && M5.Speaker.isPlaying();
 }
 
-void audioPlayChord(const mt::Chord& c)
+void audioPlayChord(mt::Note root, int typeIdx)
 {
     if (!M5.Speaker.isEnabled()) return;
+    if (typeIdx < 0 || typeIdx >= mt::kChordTypeCount) return;
 
-    static const int8_t kMaj[3] = {0, 4, 7};
-    static const int8_t kMin[3] = {0, 3, 7};
-    static const int8_t kDim[3] = {0, 3, 6};
-    static const int8_t kAug[3] = {0, 4, 8};
+    const mt::ChordType& t = mt::kChordTypes[typeIdx];
 
-    const int8_t* iv = kMaj;
-    switch (c.q) {
-        case mt::Quality::Min: iv = kMin; break;
-        case mt::Quality::Dim: iv = kDim; break;
-        case mt::Quality::Aug: iv = kAug; break;
-        default: break;
+    // Chord tones sit in the C3..B3 octave, with the root doubled an octave up
+    // so the chord still reads as "this chord" on a 1 W speaker.
+    const int rootMidi = 48 + mt::pitchClass(root);
+    float     freq[kMaxVoices];
+    float     amp[kMaxVoices];
+    int       nv = 0;
+
+    for (int i = 0; i < t.n && nv < kMaxVoices - 1; ++i) {
+        freq[nv] = noteFreq(rootMidi + t.semis[i]);
+        amp[nv]  = (i == 0) ? 1.0f : 0.72f;
+        ++nv;
     }
-
-    // root sits in the C3..B3 octave, plus the octave above for body
-    const int rootMidi = 48 + mt::pitchClass(c.root);
-    int       midi[4]  = {rootMidi, rootMidi + iv[1], rootMidi + iv[2], rootMidi + 12};
-    float     amp[4]   = {1.0f, 0.85f, 0.75f, 0.45f};
-
-    float freq[4];
-    for (int v = 0; v < 4; ++v) freq[v] = noteFreq(midi[v]);
+    freq[nv] = noteFreq(rootMidi + 12);
+    amp[nv]  = 0.35f;
+    ++nv;
 
     const float invRate = 1.0f / (float)kRate;
-    float       ph[4]   = {0, 0, 0, 0};
+    const float dur     = kSamples * invRate;
+    float       ph[kMaxVoices];
+    for (int v = 0; v < nv; ++v) ph[v] = 0.0f;
 
     for (int i = 0; i < kSamples; ++i) {
-        const float t = i * invRate;
+        const float tsec = i * invRate;
 
         float env;
-        const float attack = 0.012f;
+        const float attack  = 0.012f;
         const float release = 0.20f;
-        const float dur     = kSamples * invRate;
-        if (t < attack) {
-            env = t / attack;
-        } else if (t > dur - release) {
-            env = (dur - t) / release;
+        if (tsec < attack) {
+            env = tsec / attack;
+        } else if (tsec > dur - release) {
+            env = (dur - tsec) / release;
             if (env < 0) env = 0;
         } else {
-            // gentle decay to a 0.62 sustain
-            float d = (t - attack) / 0.25f;
+            float d = (tsec - attack) / 0.25f;
             if (d > 1.0f) d = 1.0f;
             env = 1.0f - 0.38f * d;
         }
 
         float s = 0;
-        for (int v = 0; v < 4; ++v) {
+        for (int v = 0; v < nv; ++v) {
             ph[v] += 6.2831853f * freq[v] * invRate;
             if (ph[v] > 6.2831853f) ph[v] -= 6.2831853f;
             s += amp[v] * (sinf(ph[v]) + 0.30f * sinf(2.0f * ph[v]) + 0.12f * sinf(3.0f * ph[v]));
         }
 
-        float val = s * env * 3400.0f;
+        float val = s * env * 3200.0f;
         if (val > 32000.0f) val = 32000.0f;
         if (val < -32000.0f) val = -32000.0f;
         gBuf[i] = (int16_t)val;

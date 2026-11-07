@@ -3,6 +3,7 @@
 #include <M5Unified.h>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 #include "theory.h"
 
@@ -15,7 +16,7 @@ constexpr int kH = 135;
 
 constexpr float kDeg = 0.0174532925f;
 
-// layout of the wheel
+// wheel geometry
 constexpr int kCx     = 68;
 constexpr int kCy     = 62;
 constexpr int kROut   = 58;
@@ -37,6 +38,7 @@ constexpr uint16_t kSelBg    = rgb(38, 46, 58);
 constexpr uint16_t kHubBg    = rgb(20, 24, 30);
 constexpr uint16_t kInk      = rgb(16, 18, 22);
 constexpr uint16_t kChordDim = rgb(120, 132, 148);
+constexpr uint16_t kAccent   = rgb(150, 178, 208);
 
 M5Canvas* gCanvas = nullptr;
 
@@ -130,6 +132,10 @@ void textML(LovyanGFX* d, int x, int y, const char* s, const lgfx::IFont* f, uin
     d->setTextColor(col);
     d->drawString(s, x, y);
 }
+
+// ---------------------------------------------------------------------------
+// page 0: circle of fifths
+// ---------------------------------------------------------------------------
 
 void drawWheel(LovyanGFX* d, const UiState& st)
 {
@@ -275,20 +281,123 @@ void drawPanel(LovyanGFX* d, const UiState& st)
     d->drawFastVLine(kPanelX - 4, 4, 118, kLine);
 }
 
+// ---------------------------------------------------------------------------
+// page 1: chord query
+// ---------------------------------------------------------------------------
+
+void drawChordPage(LovyanGFX* d, const UiState& st)
+{
+    if (!st.chordValid) {
+        textTL(d, 6, 4, "?", &fonts::Font4, kDim);
+        textTL(d, 6, 40, "unknown chord", &fonts::Font0, kDim);
+        textTL(d, 6, 52, "keep typing", &fonts::Font0, kDim);
+        textTL(d, 6, 88, "ENTER: play", &fonts::Font0, rgb(96, 106, 120));
+        return;
+    }
+
+    const ChordType& t = kChordTypes[st.chordType];
+
+    // symbol, shrinking to the smaller font for long names such as G#m7b5
+    d->setFont(&fonts::Font4);
+    const bool big = d->textWidth(st.chordText) <= 104;
+    textTL(d, 6, 3, st.chordText, big ? &fonts::Font4 : &fonts::Font2, kFg);
+
+    textTL(d, 6, big ? 36 : 26, t.label, &fonts::Font0, kDim);
+
+    Note notes[4];
+    spellChord(st.chordRoot, st.chordType, notes);
+
+    char nb[28];
+    int  n = 0;
+    for (int i = 0; i < t.n; ++i) {
+        char nm[4];
+        noteName(notes[i], nm);
+        n += snprintf(nb + n, sizeof nb - n, "%s%s", i ? "  " : "", nm);
+    }
+    textTL(d, 6, 48, nb, &fonts::Font0, kFg);
+
+    char ib[24];
+    n = 0;
+    for (int i = 0; i < t.n; ++i) {
+        n += snprintf(ib + n, sizeof ib - n, "%s%s", i ? "  " : "", intervalName(t.semis[i]));
+    }
+    textTL(d, 6, 58, ib, &fonts::Font0, kDim);
+
+    Note target;
+    if (dominantTarget(st.chordRoot, st.chordType, target)) {
+        char tn[4];
+        noteName(target, tn);
+        char rb[20];
+        snprintf(rb, sizeof rb, "V7 of %s", tn);
+        textTL(d, 6, 72, rb, &fonts::Font0, kAccent);
+    }
+
+    textTL(d, 6, 88, "ENTER: play", &fonts::Font0, rgb(96, 106, 120));
+    textTL(d, 6, 99, "BACKSPACE: edit", &fonts::Font0, rgb(84, 94, 108));
+
+    // right column: the same chord seen from every key
+    d->drawFastVLine(120, 3, 118, kLine);
+    textTL(d, 124, 3, "IN KEYS", &fonts::Font0, kDim);
+
+    KeyHit hits[12];
+    const int nh = findChordInKeys(st.chordRoot, st.chordType, hits, 12);
+
+    if (nh == 0) {
+        textTL(d, 124, 20, "not diatonic", &fonts::Font0, kDim);
+        textTL(d, 124, 30, "in any key", &fonts::Font0, kDim);
+        return;
+    }
+
+    const int shown = nh > 7 ? 7 : nh;
+    for (int i = 0; i < shown; ++i) {
+        const int y = 16 + i * 13;
+
+        Note tonic = majorTonic(hits[i].slot);
+        if (hits[i].minor) tonic = relativeMinorOf(tonic);
+        char kn[4];
+        noteName(tonic, kn);
+
+        textTL(d, 124, y, kn, &fonts::Font0, kFg);
+        textTL(d, 142, y, hits[i].minor ? "min" : "maj", &fonts::Font0, kDim);
+
+        const char* rom = romanNumeral(hits[i].degree, hits[i].minor);
+        const int   rx  = 168;
+        textTL(d, rx, y, rom, &fonts::Font0, kFg);
+        int w = d->textWidth(rom);
+        if (hits[i].quality == 2) {
+            d->drawCircle(rx + w + 2, y + 3, 1, kFg);
+            w += 4;
+        }
+        if (t.n == 4) {
+            textTL(d, rx + w + 2, y, "7", &fonts::Font0, kFg);
+        }
+    }
+
+    if (nh > shown) {
+        char more[16];
+        snprintf(more, sizeof more, "+%d more", nh - shown);
+        textTL(d, 124, 16 + shown * 13, more, &fonts::Font0, kDim);
+    }
+}
+
+// ---------------------------------------------------------------------------
+
 void drawFooter(LovyanGFX* d, const UiState& st)
 {
     d->drawFastHLine(4, 124, kW - 8, kLine);
-    textTL(d, 5, 126, "Fn+<> key  ^v chord  ENTER", &fonts::Font0, rgb(108, 120, 136));
+    textTL(d, 5, 126, st.page == 0 ? "TAB chord  Fn+<> key  ^v  ENTER" : "TAB circle  Fn+<> root  ^v type",
+           &fonts::Font0, rgb(104, 116, 132));
 
-    char bat[12];
+    char bat[8];
     if (st.battery < 0) {
-        snprintf(bat, sizeof bat, "BAT --");
+        snprintf(bat, sizeof bat, "--");
     } else {
-        snprintf(bat, sizeof bat, "BAT %d%%", st.battery);
+        snprintf(bat, sizeof bat, "%d%%", st.battery);
     }
     d->setFont(&fonts::Font0);
     int w = d->textWidth(bat);
-    textTL(d, kW - 5 - w, 126, bat, &fonts::Font0, st.audioBusy ? rgb(120, 200, 140) : rgb(108, 120, 136));
+    textTL(d, kW - 5 - w, 126, bat, &fonts::Font0,
+           st.audioBusy ? rgb(120, 200, 140) : rgb(104, 116, 132));
 }
 
 }  // namespace
@@ -315,11 +424,16 @@ void uiRender(const UiState& st)
     LovyanGFX* d = gCanvas ? (LovyanGFX*)gCanvas : (LovyanGFX*)&M5.Display;
 
     d->fillScreen(kBg);
-    drawWheel(d, st);
-    drawPanel(d, st);
+    if (st.page == 0) {
+        drawWheel(d, st);
+        drawPanel(d, st);
+    } else {
+        drawChordPage(d, st);
+    }
     drawFooter(d, st);
 
     if (gCanvas) {
         gCanvas->pushSprite(0, 0);
     }
 }
+

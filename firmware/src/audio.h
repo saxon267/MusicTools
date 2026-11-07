@@ -3,5 +3,5 @@
 #include "theory.h"
 
 void audioInit();
-void audioPlayChord(const mt::Chord& c);
+void audioPlayChord(mt::Note root, int typeIdx);
 bool audioBusy();

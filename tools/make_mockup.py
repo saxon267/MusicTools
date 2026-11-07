@@ -151,6 +151,38 @@ def render_strip_layout() -> Image.Image:
     return img.resize((W, H), Image.LANCZOS)
 
 
+def render_chord_page() -> Image.Image:
+    """Mirrors the layout constants in firmware/src/ui.cpp drawChordPage()."""
+    img = Image.new("RGB", (W * SS, H * SS), BG)
+    d = ImageDraw.Draw(img)
+
+    sym, label = "G7", "dom 7"
+    notes, ivs = "G  B  D  F", "1  3  5  b7"
+
+    d.text((6 * SS, 3 * SS), sym, font=font(24, True), fill=FG)
+    d.text((6 * SS, 36 * SS), label, font=font(8), fill=DIM)
+    d.text((6 * SS, 48 * SS), notes, font=font(8), fill=FG)
+    d.text((6 * SS, 58 * SS), ivs, font=font(8), fill=DIM)
+    d.text((6 * SS, 72 * SS), "V7 of C", font=font(8), fill=(150, 178, 208))
+    d.text((6 * SS, 88 * SS), "ENTER: play", font=font(7), fill=(96, 106, 120))
+    d.text((6 * SS, 99 * SS), "BACKSPACE: edit", font=font(7), fill=(84, 94, 108))
+
+    d.line([(120 * SS, 3 * SS), (120 * SS, 121 * SS)], fill=LINE, width=1 * SS)
+    d.text((124 * SS, 3 * SS), "IN KEYS", font=font(8), fill=DIM)
+
+    rows = [("C", "maj", "V7"), ("A", "min", "VII7")]
+    for i, (k, mode, rom) in enumerate(rows):
+        y = (16 + i * 13) * SS
+        d.text((124 * SS, y), k, font=font(8), fill=FG)
+        d.text((142 * SS, y), mode, font=font(8), fill=DIM)
+        d.text((168 * SS, y), rom, font=font(8), fill=FG)
+
+    d.line([(4 * SS, 124 * SS), ((W - 4) * SS, 124 * SS)], fill=LINE, width=1 * SS)
+    d.text((5 * SS, 126 * SS), "TAB circle  Fn+<> root  ^v type", font=font(8), fill=(104, 116, 132))
+    d.text(((W - 27) * SS, 126 * SS), "72%", font=font(8), fill=(104, 116, 132))
+    return img.resize((W, H), Image.LANCZOS)
+
+
 def upscale(img: Image.Image, k: int) -> Image.Image:
     return img.resize((W * k, H * k), Image.NEAREST)
 
@@ -171,10 +203,15 @@ def main() -> None:
     draw.text((pad, 8), "A  12 段圆环 + 级数和弦列表", font=lf, fill=(225, 230, 238))
     draw.text((pad * 2 + W * 4, 8), "B  横向 12 格 + 和弦网格", font=lf, fill=(225, 230, 238))
     sheet.save(os.path.join(OUT_DIR, "ui-mockup.png"))
+
+    c = render_chord_page()
+    c.save(os.path.join(OUT_DIR, "ui-mockup-chord-1x.png"))
+    upscale(c, 4).save(os.path.join(OUT_DIR, "ui-mockup-chord.png"))
     print("wrote", OUT_DIR)
 
 
 if __name__ == "__main__":
     main()
+
 
 
