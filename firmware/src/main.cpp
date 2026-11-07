@@ -101,6 +101,7 @@ void rebuildText()
 {
     mt::formatChord(g.chordRoot, g.chordType, g.chordText, (int)sizeof g.chordText);
     g.chordValid = true;
+    g.gtrPage    = 0;
 }
 
 void reparse()
@@ -111,6 +112,7 @@ void reparse()
         g.chordRoot  = root;
         g.chordType  = type;
         g.chordValid = true;
+        g.gtrPage    = 0;
     } else {
         g.chordValid = false;
     }
@@ -279,6 +281,7 @@ void setup()
     g.chordType  = 0;
     g.chordRoot  = mt::majorTonic(0);
     g.chordValid = true;
+    g.gtrPage    = 0;
     strcpy(g.chordText, "C");
 
     Serial.printf("[fifths] board=%d panel=%dx%d sprite=%d spk=%d\n", (int)M5.getBoard(),
@@ -313,7 +316,7 @@ void loop()
     if (fireTab || fireLeft || fireRight || fireUp || fireDown || fireDel) gDirty = true;
 
     if (fireTab) {
-        g.page = (g.page + 1) % 2;
+        g.page = (g.page + 1) % 3;
         if (g.page == 1) seedChordFromSelection();
     }
 
@@ -322,9 +325,15 @@ void loop()
         if (fireRight) moveSlot(1);
         if (fireUp) moveDegree(-1);
         if (fireDown) moveDegree(1);
-    } else {
+    } else if (g.page == 1) {
         if (fireLeft) transposeRoot(-1);
         if (fireRight) transposeRoot(1);
+        if (fireUp) cycleType(-1);
+        if (fireDown) cycleType(1);
+        if (fireDel) deleteLastChar();
+    } else {
+        if (fireLeft) g.gtrPage = (g.gtrPage + 2) % 3;
+        if (fireRight) g.gtrPage = (g.gtrPage + 1) % 3;
         if (fireUp) cycleType(-1);
         if (fireDown) cycleType(1);
         if (fireDel) deleteLastChar();
@@ -379,4 +388,6 @@ void loop()
 
     delay(5);
 }
+
+
 

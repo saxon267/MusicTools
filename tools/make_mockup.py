@@ -183,6 +183,68 @@ def render_chord_page() -> Image.Image:
     return img.resize((W, H), Image.LANCZOS)
 
 
+def _draw_box(d, x, y, frets):
+    """Mirror of drawChordBox() in firmware/src/ui.cpp."""
+    dx, dy, n = 10, 13, 5
+    fr = [f for f in frets if f > 0]
+    mn = min(fr) if fr else 0
+    first = mn if mn > 3 else 1
+    first_sounding = next((i for i, f in enumerate(frets) if f >= 0), -1)
+
+    for i in range(6):
+        d.line([(x + i * dx) * SS, y * SS, (x + i * dx) * SS, (y + n * dy) * SS],
+               fill=(64, 72, 86), width=1 * SS)
+    for j in range(n + 1):
+        d.line([x * SS, (y + j * dy) * SS, (x + 5 * dx) * SS, (y + j * dy) * SS],
+               fill=(64, 72, 86), width=1 * SS)
+
+    if first == 1:
+        d.rectangle([(x - 1) * SS, (y - 1) * SS, (x + 5 * dx + 1) * SS, (y + 1.5) * SS], fill=(150, 160, 176))
+    else:
+        d.text(((x - 15) * SS, (y + 1) * SS), f"{first}fr", font=font(7), fill=DIM)
+
+    for i, f in enumerate(frets):
+        cx = (x + i * dx) * SS
+        if f == 0:
+            d.ellipse([cx - 2 * SS, (y - 10) * SS, cx + 2 * SS, (y - 6) * SS], outline=DIM, width=1 * SS)
+        elif f < 0:
+            d.line([cx - 2 * SS, (y - 10) * SS, cx + 2 * SS, (y - 6) * SS], fill=DIM, width=1 * SS)
+            d.line([cx + 2 * SS, (y - 10) * SS, cx - 2 * SS, (y - 6) * SS], fill=DIM, width=1 * SS)
+
+    sounding = [f for f in frets if f >= 0]
+    all_above = all(f >= mn for f in sounding)
+    at_fret = sum(1 for f in frets if f == mn)
+    if mn > 0 and all_above and at_fret >= 2 and frets[first_sounding] == mn:
+        last = max(i for i, f in enumerate(frets) if f >= 0)
+        cy = y + (mn - first) * dy + dy / 2
+        d.rounded_rectangle([(x + first_sounding * dx - 3) * SS, (cy - 3) * SS,
+                             (x + last * dx + 3) * SS, (cy + 3) * SS], radius=3 * SS, fill=FG)
+
+    for i, f in enumerate(frets):
+        if f <= 0:
+            continue
+        cx = (x + i * dx) * SS
+        cy = (y + (f - first) * dy + dy / 2) * SS
+        d.ellipse([cx - 3 * SS, cy - 3 * SS, cx + 3 * SS, cy + 3 * SS], fill=FG)
+
+
+def render_guitar_page() -> Image.Image:
+    img = Image.new("RGB", (W * SS, H * SS), BG)
+    d = ImageDraw.Draw(img)
+
+    d.text((6 * SS, 2 * SS), "G7", font=font(15, True), fill=FG)
+    d.text((36 * SS, 7 * SS), "dom 7", font=font(8), fill=DIM)
+    d.text((206 * SS, 6 * SS), "1-3/6", font=font(8), fill=DIM)
+
+    shapes = [[3, 2, 0, 0, 0, 1], [3, 5, 3, 4, 3, 3], [3, 2, 3, 0, 0, 3]]
+    for k, s in enumerate(shapes):
+        _draw_box(d, 30 + k * 68, 30, s)
+
+    d.text((96 * SS, 104 * SS), "G  B  D  F", font=font(8), fill=DIM)
+    d.line([(4 * SS, 124 * SS), ((W - 4) * SS, 124 * SS)], fill=LINE, width=1 * SS)
+    d.text((5 * SS, 126 * SS), "TAB circle  Fn+<> voice  ^v type", font=font(8), fill=(104, 116, 132))
+    d.text(((W - 27) * SS, 126 * SS), "72%", font=font(8), fill=(104, 116, 132))
+    return img.resize((W, H), Image.LANCZOS)
 def upscale(img: Image.Image, k: int) -> Image.Image:
     return img.resize((W * k, H * k), Image.NEAREST)
 
@@ -207,11 +269,16 @@ def main() -> None:
     c = render_chord_page()
     c.save(os.path.join(OUT_DIR, "ui-mockup-chord-1x.png"))
     upscale(c, 4).save(os.path.join(OUT_DIR, "ui-mockup-chord.png"))
+
+    g = render_guitar_page()
+    g.save(os.path.join(OUT_DIR, "ui-mockup-guitar-1x.png"))
+    upscale(g, 4).save(os.path.join(OUT_DIR, "ui-mockup-guitar.png"))
     print("wrote", OUT_DIR)
 
 
 if __name__ == "__main__":
     main()
+
 
 
 
