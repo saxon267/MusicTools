@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cardputer 乐理固件 · 网页模拟器</title>
+<style>
+  :root {
+    --bg: #0b0d11;
+    --panel: #14181f;
+    --line: #262d38;
+    --fg: #e8ecf1;
+    --dim: #8a97a8;
+    --accent: #7fb0e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(1200px 600px at 50% -10%, #1b2230 0%, var(--bg) 60%);
+    color: var(--fg);
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px 48px;
+  }
+  .wrap { width: 100%; max-width: 780px; }
+  h1 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  .sub { margin: 0 0 20px; color: var(--dim); font-size: 13px; }
+
+  .device {
+    background: linear-gradient(180deg, #1d232d, #12161d);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 20px 50px -20px #000, inset 0 1px 0 #ffffff10;
+  }
+  canvas {
+    display: block;
+    width: 100%;
+    max-width: 720px;
+    aspect-ratio: 240 / 135;
+    margin: 0 auto;
+    background: #0e1116;
+    border-radius: 6px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  .keys { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 10px; }
+  button {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: linear-gradient(180deg, #232a35, #171d25);
+    color: var(--fg);
+    font: 13px/1 "Segoe UI", "Microsoft YaHei", sans-serif;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    min-width: 46px;
+    box-shadow: 0 2px 0 #0a0d12;
+    transition: transform .05s ease, background .15s ease;
+  }
+  button:hover { background: linear-gradient(180deg, #2b3340, #1b222c); }
+  button:active { transform: translateY(1px); box-shadow: none; }
+  button.wide { min-width: 84px; }
+  button.primary { border-color: #3c6d9e; color: #cfe4fa; }
+
+  .status {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--panel);
+    color: var(--accent);
+    font: 13px/1.4 Consolas, "Courier New", monospace;
+    min-height: 40px;
+  }
+  .tip { color: var(--dim); font-size: 12px; line-height: 1.7; margin-top: 14px; }
+  .tip code {
+    background: #1b2230; border: 1px solid var(--line); border-radius: 4px;
+    padding: 1px 5px; font-size: 11px; color: #b9c8da;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cardputer 乐理固件 · 网页模拟器</h1>
+  <p class="sub">同一套乐理与指板算法，同一套 240×135 版式；改代码后刷新页面即可，不用刷固件。</p>
+
+  <div class="device">
+    <canvas id="lcd" width="240" height="135"></canvas>
+  </div>
+
+  <div class="keys">
+    <button data-action="tab" class="wide primary">Tab 翻页</button>
+    <button data-action="left">←</button>
+    <button data-action="up">↑</button>
+    <button data-action="down">↓</button>
+    <button data-action="right">→</button>
+    <button data-action="enter" class="wide primary">Enter 播放/停止</button>
+    <button data-action="back">⌫</button>
+  </div>
+
+  <div id="status" class="status">启动中…</div>
+
+  <p class="tip">
+    键盘操作：<code>Tab</code> 翻页 · <code>←↑↓→</code> 对应固件里的 <code>Fn+方向键</code> ·
+    <code>Enter</code>/<code>空格</code> 播放或停止 ·
+    <code>a–g</code> <code>0–9</code> <code>#</code> <code>m</code> 输入和弦 ·
+    <code>Backspace</code> 删除。<br>
+    注意：网页版的声音用 Web Audio 合成，音色与实机不同，只用于确认"该响的时候会响"。
+  </p>
+</div>
+
+<script src="theory.js"></script>
+<script src="guitar.js"></script>
+<script src="ui.js"></script>
+<script src="app.js"></script>
+<script>
+  App.init(document.getElementById('lcd'));
+</script>
+</body>
+</html>
