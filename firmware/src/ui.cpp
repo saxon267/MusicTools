@@ -617,7 +617,133 @@ void drawMetroPage(LovyanGFX* d, const UiState& st)
     textTL(d, 12, 100, "Fn+<> tempo   Fn+^v style", &fonts::Font0, rgb(96, 106, 120));
 }
 
-// ---------------------------------------------------------------------------// Transient bar shown for a moment after the volume keys are used.
+// ---------------------------------------------------------------------------
+// page 5: progression player
+// ---------------------------------------------------------------------------
+
+const char* progSuffix(uint8_t qual)
+{
+    static const char* kSuffix[6] = {"", "m", "7", "maj7", "m7", "dim"};
+    return kSuffix[qual % 6];
+}
+
+void progChordLabel(mt::Note keyTonic, bool keyMinor, const ProgStep& s, char* out, int cap)
+{
+    mt::Note root;
+    int      ti = 0;
+    progChord(keyTonic, keyMinor, s, root, ti);
+    char nm[4];
+    mt::noteName(root, nm);
+    snprintf(out, (size_t)cap, "%s%s", nm, progSuffix(s.qual));
+}
+
+void drawProgPage(LovyanGFX* d, const UiState& st)
+{
+    // view 0: style list
+    if (st.progView == 0) {
+        textTL(d, 8, 14, "STYLE", &fonts::Font0, kDim);
+        for (int i = 0; i < kProgStyleCount; ++i) {
+            const int  y   = 26 + i * 13;
+            const bool sel = (i == st.progStyle);
+            if (sel) d->fillRoundRect(6, y - 1, 228, 12, 3, kSelBg);
+            textTL(d, 12, y + 1, kProgStyles[i].name, &fonts::Font0, sel ? kFg : kDim);
+        }
+        return;
+    }
+
+    // view 1: the progressions inside a style
+    if (st.progView == 1) {
+        const ProgStyle& s = kProgStyles[st.progStyle];
+        textTL(d, 8, 13, s.name, &fonts::Font2, kFg);
+        for (int i = 0; i < s.count; ++i) {
+            const int  y   = 38 + i * 13;
+            const bool sel = (i == st.progSel);
+            if (sel) d->fillRoundRect(6, y - 1, 228, 12, 3, kSelBg);
+            textTL(d, 12, y + 1, s.items[i].name, &fonts::Font0, sel ? kFg : kDim);
+        }
+        return;
+    }
+
+    if (!st.progSteps || st.progLen <= 0) {
+        textTL(d, 12, 40, "no progression", &fonts::Font0, kDim);
+        return;
+    }
+
+    mt::Note tonic = mt::majorTonic(st.slot);
+    if (st.progMinor) tonic = mt::relativeMinorOf(tonic);
+
+    char key[16];
+    char kn[4];
+    mt::noteName(tonic, kn);
+    snprintf(key, sizeof key, "%s %s", kn, st.progMinor ? "minor" : "major");
+    char head[40];
+    snprintf(head, sizeof head, "%s  %s", kProgStyles[st.progStyle].name, st.progName ? st.progName : "");
+    textTL(d, 6, 12, head, &fonts::Font0, kDim);
+    d->setFont(&fonts::Font0);
+    textTL(d, kW - 6 - d->textWidth(key), 12, key, &fonts::Font0, kAccent);
+
+    // chord slots, scrolled so the current one is always visible
+    const int visible = 4;
+    int       first   = 0;
+    if (st.progLen > visible) {
+        first = st.progPos - 1;
+        if (first < 0) first = 0;
+        if (first > st.progLen - visible) first = st.progLen - visible;
+    }
+    const uint8_t beats = kMetroPatterns[st.metroPattern].beats;
+
+    for (int k = 0; k < visible; ++k) {
+        const int i = first + k;
+        if (i >= st.progLen) break;
+        const int  x   = 6 + k * 58;
+        const bool cur = (st.progPlaying && i == st.progPos);
+        const bool sel = (st.progEdit && i == st.progSlot);
+
+        if (cur) {
+            d->fillRoundRect(x, 24, 54, 54, 4, kSelBg);
+        } else if (sel) {
+            d->drawRoundRect(x, 24, 54, 54, 4, kAccent);
+        }
+
+        // beat lamps inside the current step
+        if (cur && beats > 1) {
+            const int dotGap = 7;
+            const int dotX   = x + 27 - (beats - 1) * dotGap / 2;
+            for (int b = 0; b < beats; ++b) {
+                const bool on = (b == st.beat);
+                if (on) {
+                    d->fillCircle(dotX + b * dotGap, 32, 2, kAccent);
+                } else {
+                    d->drawCircle(dotX + b * dotGap, 32, 2, rgb(70, 80, 96));
+                }
+            }
+        }
+
+        char label[10];
+        progChordLabel(tonic, st.progMinor, st.progSteps[i], label, sizeof label);
+        textMid(d, x + 27, 52, label, &fonts::Font2, cur ? kFg : rgb(210, 218, 228));
+
+        char rom[8];
+        progRoman(st.progSteps[i], st.progMinor, rom, sizeof rom);
+        textMid(d, x + 27, 68, rom, &fonts::Font0, cur ? kAccent : kDim);
+    }
+
+    if (st.progEdit) {
+        textTL(d, 6, 96, "Fn+<> chord   ENTER play", &fonts::Font0, rgb(96, 106, 120));
+    } else {
+        textTL(d, 6, 96, st.progPlaying ? "PLAYING" : "STOPPED", &fonts::Font0,
+               st.progPlaying ? rgb(120, 200, 140) : kDim);
+        textTL(d, 70, 96, "ENTER play   BKSP back", &fonts::Font0, rgb(96, 106, 120));
+    }
+
+    char pos[16];
+    snprintf(pos, sizeof pos, "%d/%d", st.progPos + 1, st.progLen);
+    d->setFont(&fonts::Font0);
+    textTL(d, kW - 6 - d->textWidth(pos), 96, pos, &fonts::Font0, kDim);
+}
+
+// ---------------------------------------------------------------------------
+// Transient bar shown for a moment after the volume keys are used.
 void drawVolumeBar(LovyanGFX* d, const UiState& st)
 {
     if (!st.showVolume) return;
@@ -639,16 +765,16 @@ void drawVolumeBar(LovyanGFX* d, const UiState& st)
 
 void drawTabs(LovyanGFX* d, const UiState& st)
 {
-    static const char* kNames[5] = {"CIRCLE", "CHORD", "GUITAR", "SCALE", "TEMPO"};
-    for (int i = 0; i < 5; ++i) {
-        const int  x  = i * 48;
+    static const char* kNames[6] = {"CIRCLE", "CHORD", "GUITAR", "SCALE", "TEMPO", "PROG"};
+    for (int i = 0; i < 6; ++i) {
+        const int  x  = i * 40;
         const bool on = (i == st.page);
         if (on) {
-            d->fillRoundRect(x + 1, 2, 46, 9, 2, kSelBg);
+            d->fillRoundRect(x + 1, 2, 38, 9, 2, kSelBg);
         }
         d->setFont(&fonts::Font0);
         const int w = d->textWidth(kNames[i]);
-        textTL(d, x + (48 - w) / 2, 3, kNames[i], &fonts::Font0,
+        textTL(d, x + (40 - w) / 2, 3, kNames[i], &fonts::Font0,
                on ? kFg : rgb(88, 98, 112));
     }
     d->drawFastHLine(0, kTabH, kW, kLine);
@@ -656,15 +782,16 @@ void drawTabs(LovyanGFX* d, const UiState& st)
 
 void drawFooter(LovyanGFX* d, const UiState& st)
 {
-    static const char* kHints[5] = {
+    static const char* kHints[6] = {
         "TAB chord  Fn+<> key  ^v  ENTER",
         "TAB guitar  Fn+<> root  ^v type",
         "TAB scale  Fn+<> voice  ^v type",
         "TAB tempo  Fn+<> root ^v ENTER",
-        "TAB circle  Fn+<> tempo  ^v style",
+        "TAB prog  Fn+<> tempo  ^v style",
+        "TAB circle  Fn+<> move  ^v pick",
     };
     d->drawFastHLine(4, 124, kW - 8, kLine);
-    textTL(d, 5, 126, kHints[st.page % 5], &fonts::Font0, rgb(104, 116, 132));
+    textTL(d, 5, 126, kHints[st.page % 6], &fonts::Font0, rgb(104, 116, 132));
 
     char bat[8];
     if (st.battery < 0) {
@@ -739,8 +866,10 @@ void uiRender(const UiState& st)
         drawGuitarPage(d, st);
     } else if (st.page == 3) {
         drawScalePage(d, st);
-    } else {
+    } else if (st.page == 4) {
         drawMetroPage(d, st);
+    } else {
+        drawProgPage(d, st);
     }
     drawVolumeBar(d, st);
     drawFooter(d, st);
@@ -749,6 +878,9 @@ void uiRender(const UiState& st)
         gCanvas->pushSprite(0, 0);
     }
 }
+
+
+
 
 
 

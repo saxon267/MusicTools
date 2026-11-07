@@ -4,7 +4,7 @@
 
 # MusicTools
 
-给 M5Stack **Cardputer / Cardputer-Adv** 的乐理工具箱固件。五个页面，Tab 切换：
+给 M5Stack **Cardputer / Cardputer-Adv** 的乐理工具箱固件。六个页面，Tab 切换：
 
 | 页面 | 内容 |
 |---|---|
@@ -13,6 +13,7 @@
 | **吉他指法** | 该和弦的 3 个把位指法图，方向键翻页看更多 |
 | **音阶查询** | 19 种音阶的拼写、级数、12 音位图、音程公式，Enter 试听 |
 | **节拍器** | 40–240 BPM，6 种拍号，强拍重音 |
+| **和弦进行** | 6 种风格 17 条经典进行 + 自定义 4 小节，跟随节拍器自动走和弦 |
 
 离线、开机即用、按 Enter 直接试听。开机先是 MusicTools 的标志（五度圈圆环），一眼能认出是这个固件。
 
@@ -22,22 +23,7 @@
 <img src="docs/sim-p2.png" width="380" alt="吉他指法页">
 <img src="docs/sim-p3.png" width="380" alt="音阶查询页">
 <img src="docs/sim-p4.png" width="380" alt="节拍器页">
-</p>
-
----|---|
-| **五度圈** | 12 段圆环（外环大调 / 内环关系小调）+ 当前调的 7 个级数和弦 |
-| **和弦查询** | 正查：和弦拼写、音程、属性；反查：这个和弦出现在哪些调、是什么级数 |
-| **吉他指法** | 该和弦的 3 个把位指法图，方向键翻页看更多 |
-| **音阶查询** | 19 种音阶的拼写、级数、12 音位图、音程公式，Enter 试听 |
-| **节拍器** | 40–240 BPM，6 种拍号，强拍重音 |
-
-离线、开机即用、按 Enter 直接试听。
-
-<p>
-<img src="docs/sim-p0.png" width="380" alt="五度圈页">
-<img src="docs/sim-p1.png" width="380" alt="和弦查询页">
-<img src="docs/sim-p2.png" width="380" alt="吉他指法页">
-<img src="docs/sim-p3.png" width="380" alt="音阶查询页">
+<img src="docs/sim-prog.png" width="380" alt="和弦进行页">
 </p>
 
 ---
@@ -127,6 +113,22 @@ M5Burner → 选择设备 → **Custom** / 本地固件 → 选 bin → 烧录�
 | `Fn` + `,` / `Fn` + `.` | 换拍号（4/4 3/4 2/4 6/8 5/4 7/8） |
 | `Fn` + `;` / `Fn` + `/` | BPM ±1，按住连发 |
 | `Enter` / `空格` | 开始 / 停止 |
+
+### 和弦进行页
+
+两级菜单：先选风格，再选进行。
+
+| 按键 | 功能 |
+|---|---|
+| `Tab` | 回到五度圈页 |
+| `Fn` + `;` / `Fn` + `/` | 在列表里上下移动 |
+| `Enter` | 打开风格 / 载入进行 / 播放与停止 |
+| `Backspace` | 返回上一级 |
+| `Fn` + `,` / `Fn` + `.` | 只在 CUSTOM 编辑时用：切换小节 |
+
+内置 17 条：POP 4、ROCK 3、JAZZ 4、BLUES 2、CLASSICAL 3、FOLK 3，外加 CUSTOM。进行跟着节拍器的拍号走，每小节换一个和弦，当前和弦会响一次，槽位里的小圆点显示当前拍。
+
+CUSTOM 是 4 个槽位，`Fn+;` / `Fn+/` 改当前槽位的级数（按当前调自然音阶循环），`Fn+,` / `Fn+.` 换槽位，`Enter` 播放。
 
 ### 声音
 
@@ -291,6 +293,8 @@ pio run -t upload      # 直接烧写
 MIT，见 [LICENSE](LICENSE)。
 
 界面字体使用 M5GFX 内置的 `Font0` / `Font2` / `Font4` / `FreeSans9pt7b`（Adafruit GFX 字体集，源自 GNU FreeFont，GPLv3 + font exception），随库分发。
+
+
 
 
 

@@ -253,6 +253,77 @@ void changeVolume(int delta)
     gDirty = true;
 }
 
+// ---------------------------------------------------------------- progression
+
+int progDiatonicQuality(int degree)
+{
+    static const uint8_t kQ[7] = {Q_MAJ, Q_MIN, Q_MIN, Q_MAJ, Q_MAJ, Q_MIN, Q_DIM};
+    return kQ[degree % 7];
+}
+
+void progStop()
+{
+    g.progPlaying = false;
+    audioStop();
+    g.metroOn = false;
+    g.beat    = -1;
+}
+
+void progStart()
+{
+    if (!g.progSteps || g.progLen <= 0) return;
+    g.progPlaying = true;
+    g.progPos     = 0;
+    g.metroOn     = true;
+    g.beat        = -1;
+    gNextBeatUs   = micros();
+}
+
+void progLoadPreset(int style, int idx)
+{
+    const Progression& p = kProgStyles[style].items[idx];
+    g.progSteps = p.steps;
+    g.progLen   = p.len;
+    g.progName  = p.name;
+    g.progMinor = p.minor;
+    g.progStyle = style;
+    g.progSel   = idx;
+    g.progView  = 2;
+    g.progEdit  = false;
+    g.progPos   = 0;
+}
+
+void progLoadCustom()
+{
+    g.progSteps = gCustomSteps;
+    g.progLen   = kCustomLen;
+    g.progName  = "CUSTOM";
+    g.progMinor = false;
+    g.progStyle = kProgStyleCount - 1;
+    g.progView  = 2;
+    g.progEdit  = true;
+    g.progPos   = 0;
+    g.progSlot  = 0;
+}
+
+void progBack()
+{
+    if (g.progView == 2) {
+        progStop();
+        g.progView = g.progEdit ? 0 : 1;
+    } else if (g.progView == 1) {
+        g.progView = 0;
+    }
+}
+
+void progStep(int delta)
+{
+    ProgStep& s = gCustomSteps[g.progSlot];
+    s.degree    = (uint8_t)((s.degree + delta + 7) % 7);
+    s.acc       = 0;
+    s.qual      = (uint8_t)progDiatonicQuality(s.degree);
+}
+
 void handleChar(char c)
 {
     // global volume, on every page
@@ -338,6 +409,18 @@ void setup()
     g.selDegree  = 4;  // the V chord is a useful default
     g.battery    = M5.Power.getBatteryLevel();
     metroInit();
+    g.progView    = 0;
+    g.progStyle   = 0;
+    g.progSel     = 0;
+    g.progPos     = 0;
+    g.progPlaying = false;
+    g.progEdit    = false;
+    g.progSlot    = 0;
+    g.progMinor   = false;
+    g.progSteps   = nullptr;
+    g.progLen     = 0;
+    g.progName    = "";
+
     g.bpm          = 100;
     g.metroPattern = 0;
     g.metroOn      = false;
@@ -388,8 +471,9 @@ void loop()
     if (fireTab || fireLeft || fireRight || fireUp || fireDown || fireDel) gDirty = true;
 
     if (fireTab) {
-        g.page = (g.page + 1) % 5;
+        g.page = (g.page + 1) % 6;
         if (g.page == 1) seedChordFromSelection();
+        if (g.page != 5 && g.progPlaying) progStop();
     }
 
     if (g.page == 0) {
@@ -420,6 +504,24 @@ void loop()
         if (fireUp) g.bpm = g.bpm >= 240 ? 240 : g.bpm + 1;
         if (fireDown) g.bpm = g.bpm <= 40 ? 40 : g.bpm - 1;
         if (fireUp || fireDown) g.beat = -1;
+    } else {
+        // progression page
+        if (g.progView == 0) {
+            if (fireUp) g.progStyle = (g.progStyle + kProgStyleCount - 1) % kProgStyleCount;
+            if (fireDown) g.progStyle = (g.progStyle + 1) % kProgStyleCount;
+        } else if (g.progView == 1) {
+            const int n = kProgStyles[g.progStyle].count;
+            if (n > 0) {
+                if (fireUp) g.progSel = (g.progSel + n - 1) % n;
+                if (fireDown) g.progSel = (g.progSel + 1) % n;
+            }
+        } else if (g.progEdit) {
+            if (fireLeft) g.progSlot = (g.progSlot + g.progLen - 1) % g.progLen;
+            if (fireRight) g.progSlot = (g.progSlot + 1) % g.progLen;
+            if (fireUp) progStep(-1);
+            if (fireDown) progStep(1);
+        }
+        if (fireDel) progBack();
     }
 
     if (!ks.fn && pollTypedKeys()) gDirty = true;
@@ -434,6 +536,21 @@ void loop()
             g.metroOn   = !g.metroOn;
             g.beat      = -1;
             gNextBeatUs = micros();
+        } else if (g.page == 5) {
+            if (g.progView == 0) {
+                if (g.progStyle == kProgStyleCount - 1) {
+                    progLoadCustom();
+                } else {
+                    g.progView = 1;
+                    g.progSel  = 0;
+                }
+            } else if (g.progView == 1) {
+                progLoadPreset(g.progStyle, g.progSel);
+            } else if (g.progPlaying) {
+                progStop();
+            } else {
+                progStart();
+            }
         } else if (audioBusy()) {
             audioStop();  // second press stops whatever is sounding
         } else if (g.page == 0) {
@@ -492,6 +609,16 @@ void loop()
             const MetroPattern& p = kMetroPatterns[g.metroPattern];
             g.beat = (g.beat + 1) % p.beats;
             metroClick(((p.accents >> g.beat) & 1u) != 0);
+
+            if (g.progPlaying && g.beat == 0 && g.progSteps && g.progLen > 0) {
+                mt::Note tonic = mt::majorTonic(g.slot);
+                if (g.progMinor) tonic = mt::relativeMinorOf(tonic);
+                mt::Note root;
+                int      ti = 0;
+                progChord(tonic, g.progMinor, g.progSteps[g.progPos], root, ti);
+                audioPlayChord(root, ti);
+                g.progPos = (g.progPos + 1) % g.progLen;
+            }
             const uint32_t interval = 60000000UL / (uint32_t)g.bpm;
             gNextBeatUs += interval;
             if ((int32_t)(t - gNextBeatUs) > 0) gNextBeatUs = t + interval;

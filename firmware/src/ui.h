@@ -2,10 +2,11 @@
 
 #include <cstdint>
 
+#include "progression.h"
 #include "theory.h"
 
 struct UiState {
-    int  page;        // 0 = circle, 1 = chord query, 2 = guitar, 3 = scales
+    int  page;        // 0 circle, 1 chord, 2 guitar, 3 scales, 4 tempo, 5 progression
     int  slot;        // ring slot 0..11, C at the top
     bool minorView;   // circle page: show the relative minor
     int  selDegree;   // circle page: selected diatonic degree 0..6
@@ -29,12 +30,25 @@ struct UiState {
     bool metroOn;
     int  beat;  // -1 before the first click
 
+    // progression page
+    int             progView;  // 0 style list, 1 progression list, 2 player
+    int             progStyle;
+    int             progSel;
+    int             progPos;
+    bool            progPlaying;
+    bool            progEdit;
+    int             progSlot;
+    bool            progMinor;
+    const ProgStep* progSteps;
+    int             progLen;
+    const char*     progName;
 };
 
 void uiBegin();
 void uiSplash();  // boot logo, blocking (call once from setup)
 bool uiHasCanvas();
 void uiRender(const UiState& st);
+
 
 
 
