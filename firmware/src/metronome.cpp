@@ -6,24 +6,33 @@
 namespace {
 
 constexpr uint32_t kRate    = 16000;
-constexpr int      kSamples = 240;  // 15 ms, short enough not to smear the beat
+constexpr int      kSamples = 208;  // 13 ms
 
 int16_t gAccent[kSamples];
 int16_t gNormal[kSamples];
 
+// A click is a transient, so it needs shaping: a short fade in so the first
+// sample is not a step, and a fade out to zero before the buffer ends. Without
+// them the codec clips and the click buzzes instead of ticking.
 void render(int16_t* dst, float freq, float gain)
 {
+    const float dur    = kSamples / (float)kRate;
+    const float attack = 0.0018f;
+    const float tail   = 0.0025f;
+
     for (int i = 0; i < kSamples; ++i) {
-        const float t   = i / (float)kRate;
-        const float env = expf(-t * 220.0f);  // sharp click, no tail
-        float       s   = sinf(6.2831853f * freq * t);
-        if (i > 0) {
-            // a touch of noise on the attack makes it cut through
-            s += 0.25f * sinf(6.2831853f * freq * 2.7f * t);
-        }
-        float v = s * env * gain;
-        if (v > 32000.0f) v = 32000.0f;
-        if (v < -32000.0f) v = -32000.0f;
+        const float t = i / (float)kRate;
+
+        float env = expf(-t * 95.0f);
+        if (t < attack) env *= t / attack;
+        const float left = dur - t;
+        if (left < tail) env *= left / tail;
+        if (env < 0.0f) env = 0.0f;
+
+        const float s = sinf(6.2831853f * freq * t);
+        float       v = s * env * gain;
+        if (v > 22000.0f) v = 22000.0f;
+        if (v < -22000.0f) v = -22000.0f;
         dst[i] = (int16_t)v;
     }
 }
@@ -43,8 +52,8 @@ const int kMetroPatternCount = (int)(sizeof(kMetroPatterns) / sizeof(kMetroPatte
 
 void metroInit()
 {
-    render(gAccent, 1568.0f, 15000.0f);
-    render(gNormal, 1046.0f, 9000.0f);
+    render(gAccent, 1180.0f, 8000.0f);
+    render(gNormal, 790.0f, 4600.0f);
 }
 
 void metroClick(bool accented)

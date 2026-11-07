@@ -5,52 +5,65 @@
 
 namespace {
 
-constexpr int      kWindow  = 1024;   // 64 ms at 16 kHz, enough for a low E
-constexpr uint32_t kRate    = 16000;
-constexpr int      kMinLag  = 12;     // ~1330 Hz
-constexpr int      kMaxLag  = 300;    // ~53 Hz
+constexpr int      kWindow = 2048;  // 128 ms at 16 kHz: ten periods of a low E
+constexpr uint32_t kRate   = 16000;
+constexpr int      kMinLag = 12;    // ~1330 Hz
+constexpr int      kMaxLag = 320;   // ~50 Hz
 
 int16_t      gSamples[kWindow];
 float        gCorr[kMaxLag + 2];
-bool         gCaptured = false;
-TunerReading gReading  = {false, false, 0.0f, 0, 0.0f, 0};
+float        gPrefix[kWindow + 1];
+bool         gCaptured  = false;
+float        gSmoothFreq = 0.0f;
+uint32_t     gLastGoodMs = 0;
 
-float detectPitch(const int16_t* x, int n, int rate)
+TunerReading gReading = {false, false, 0.0f, 0, 0.0f, 0};
+
+// Normalised autocorrelation: dividing by the energy of both windows removes
+// the bias towards short lags, so a quiet but periodic signal still scores
+// close to 1 and the threshold means something.
+float detectPitch(const int16_t* x, int n, int rate, float* strength)
 {
     int32_t sum = 0;
     for (int i = 0; i < n; ++i) sum += x[i];
     const int mean = (int)(sum / n);
 
-    int32_t energy = 0;
+    gPrefix[0] = 0.0f;
     for (int i = 0; i < n; ++i) {
-        const int v = x[i] - mean;
-        energy += v * v;
+        const float v  = (float)(x[i] - mean);
+        gPrefix[i + 1] = gPrefix[i] + v * v;
     }
+    const float energy = gPrefix[n];
+    const float rms    = sqrtf(energy / (float)n);
 
-    // level meter: log-ish so quiet signals still move the bar
-    const float rms = sqrtf((float)energy / (float)n);
-    int         lvl = (int)(log10f(rms + 1.0f) * 42.0f);
+    int lvl = (int)(log10f(rms + 1.0f) * 42.0f);
     if (lvl > 100) lvl = 100;
     if (lvl < 0) lvl = 0;
     gReading.level = lvl;
 
-    if (energy < (int32_t)n * 24) return 0.0f;  // basically silence
+    if (energy < (float)n * 4.0f) {  // nearly silent, rms below 2
+        *strength = 0.0f;
+        return 0.0f;
+    }
 
     float best = 0.0f;
     for (int lag = kMinLag; lag <= kMaxLag; ++lag) {
-        int32_t acc = 0;
+        float acc = 0.0f;
         for (int i = 0; i + lag < n; ++i) {
-            acc += (int32_t)(x[i] - mean) * (int32_t)(x[i + lag] - mean);
+            acc += (float)(x[i] - mean) * (float)(x[i + lag] - mean);
         }
-        const float r = (float)acc / (float)(n - lag);
-        gCorr[lag]    = r;
+        const float e1  = gPrefix[n - lag];
+        const float e2  = energy - gPrefix[lag];
+        const float den = sqrtf(e1 * e2);
+        const float r   = den > 1e-6f ? acc / den : 0.0f;
+        gCorr[lag]      = r;
         if (r > best) best = r;
     }
-    if (best <= 0.0f) return 0.0f;
+    *strength = best;
+    if (best < 0.45f) return 0.0f;
 
-    // take the first peak that is close to the strongest one, so a strong
-    // second harmonic does not drag us an octave up
-    const float threshold = best * 0.82f;
+    // first strong peak, so a louder overtone does not win an octave up
+    const float threshold = best * 0.88f;
     int         peakLag   = 0;
     for (int lag = kMinLag + 1; lag < kMaxLag; ++lag) {
         if (gCorr[lag] < threshold) continue;
@@ -60,10 +73,9 @@ float detectPitch(const int16_t* x, int n, int rate)
     }
     if (peakLag == 0) return 0.0f;
 
-    // parabolic interpolation around the peak for a stable cent reading
-    const float y0 = gCorr[peakLag - 1];
-    const float y1 = gCorr[peakLag];
-    const float y2 = gCorr[peakLag + 1];
+    const float y0  = gCorr[peakLag - 1];
+    const float y1  = gCorr[peakLag];
+    const float y2  = gCorr[peakLag + 1];
     const float den = y0 - 2.0f * y1 + y2;
     float       shift = 0.0f;
     if (fabsf(den) > 1e-6f) shift = 0.5f * (y0 - y2) / den;
@@ -77,17 +89,31 @@ float detectPitch(const int16_t* x, int n, int rate)
 
 void analyse()
 {
-    const float f = detectPitch(gSamples, kWindow, (int)kRate);
-    if (f < 40.0f || f > 1400.0f) {
-        gReading.valid = false;
+    float          strength = 0.0f;
+    const float    f        = detectPitch(gSamples, kWindow, (int)kRate, &strength);
+    const uint32_t now      = millis();
+
+    if (f > 40.0f && f < 1400.0f) {
+        // smooth so the cents needle does not jitter
+        gSmoothFreq = (gSmoothFreq > 0.0f) ? (gSmoothFreq * 0.45f + f * 0.55f) : f;
+        gLastGoodMs = now;
+
+        const float midi = 69.0f + 12.0f * log2f(gSmoothFreq / 440.0f);
+        const int   note = (int)lroundf(midi);
+        gReading.valid   = true;
+        gReading.freq    = gSmoothFreq;
+        gReading.note    = note;
+        gReading.cents   = (midi - note) * 100.0f;
         return;
     }
-    const float midi  = 69.0f + 12.0f * log2f(f / 440.0f);
-    const int   note  = (int)lroundf(midi);
-    gReading.valid    = true;
-    gReading.freq     = f;
-    gReading.note     = note;
-    gReading.cents    = (midi - note) * 100.0f;
+
+    // Detection drops out for a window all the time. Blanking the display on
+    // every miss is what made the note flash, so hold it for a moment.
+    if (gReading.valid && (now - gLastGoodMs) > 700) {
+        gReading.valid = false;
+        gReading.freq  = 0.0f;
+        gSmoothFreq    = 0.0f;
+    }
 }
 
 }  // namespace
@@ -97,9 +123,8 @@ void tunerInit()
     gReading.mic = M5.Mic.isEnabled();
     if (!gReading.mic) return;
 
-    // the default magnification (16) leaves a quiet instrument almost silent
     auto cfg = M5.Mic.config();
-    cfg.magnification     = 128;
+    cfg.magnification      = 200;
     cfg.noise_filter_level = 0;
     M5.Mic.config(cfg);
     M5.Mic.begin();
@@ -126,4 +151,3 @@ const TunerReading& tunerLast()
 {
     return gReading;
 }
-

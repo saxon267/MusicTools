@@ -40,8 +40,8 @@ const App = (() => {
     const t = ctx.currentTime;
     const osc = ctx.createOscillator();
     const g = ctx.createGain();
-    osc.frequency.value = accent ? 1568 : 1046;
-    g.gain.setValueAtTime(accent ? 0.35 : 0.2, t);
+    osc.frequency.value = accent ? 1180 : 790;
+    g.gain.setValueAtTime(accent ? 0.2 : 0.12, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
     osc.connect(g);
     g.connect(ctx.destination);
@@ -71,7 +71,7 @@ const App = (() => {
   };
 
   // ---- tuner -----------------------------------------------------------
-  const tuner = { stream: null, analyser: null, buf: null, timer: null };
+  const tuner = { stream: null, analyser: null, buf: null, timer: null, lastGood: 0, smooth: 0 };
 
   const stopTuner = () => {
     if (tuner.timer) clearInterval(tuner.timer);
@@ -103,7 +103,7 @@ const App = (() => {
     st.tuner.level = Math.max(0, Math.min(100, Math.round(Math.log10(rms + 1) * 42)));
 
     if (energy < 1e-6) {
-      st.tuner.valid = false;
+      holdOrClear();
       return;
     }
 
@@ -120,7 +120,7 @@ const App = (() => {
       if (sum > best) best = sum;
     }
     if (best <= 0) {
-      st.tuner.valid = false;
+      holdOrClear();
       return;
     }
 
@@ -133,7 +133,7 @@ const App = (() => {
       break;
     }
     if (!peak) {
-      st.tuner.valid = false;
+      holdOrClear();
       return;
     }
 
@@ -147,15 +147,25 @@ const App = (() => {
 
     const freq = rate / (peak + shift);
     if (!(freq > 40 && freq < 1400)) {
-      st.tuner.valid = false;
+      holdOrClear();
       return;
     }
-    const midi = 69 + 12 * Math.log2(freq / 440);
+    tuner.smooth = tuner.smooth > 0 ? tuner.smooth * 0.45 + freq * 0.55 : freq;
+    tuner.lastGood = performance.now();
+    const midi = 69 + 12 * Math.log2(tuner.smooth / 440);
     const note = Math.round(midi);
     st.tuner.valid = true;
-    st.tuner.freq = freq;
+    st.tuner.freq = tuner.smooth;
     st.tuner.note = note;
     st.tuner.cents = (midi - note) * 100;
+  };
+
+  const holdOrClear = () => {
+    if (st.tuner.valid && performance.now() - tuner.lastGood > 700) {
+      st.tuner.valid = false;
+      st.tuner.freq = 0;
+      tuner.smooth = 0;
+    }
   };
 
   const startTuner = async () => {
@@ -617,6 +627,8 @@ const App = (() => {
 
   return { init, refresh, state: st };
 })();
+
+
 
 
 
