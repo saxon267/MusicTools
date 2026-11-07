@@ -47,7 +47,7 @@
 
 ## 一、刷机
 
-固件文件：`dist/MusicTools-8MB.bin`（**从 0x0 地址烧写**，已合并 bootloader + 分区表 + 应用）
+固件文件：**[MusicTools-8MB.bin](https://github.com/saxon267/MusicTools/releases/latest)** （**从 0x0 地址烧写**，已合并 bootloader + 分区表 + 应用；仓库里也有一份 dist/MusicTools-8MB.bin）
 
 ### 方式 A：浏览器烧写（推荐，不用装任何环境）
 
@@ -300,6 +300,7 @@ pio run -t upload      # 直接烧写
 MIT，见 [LICENSE](LICENSE)。
 
 界面字体使用 M5GFX 内置的 `Font0` / `Font2` / `Font4` / `FreeSans9pt7b`（Adafruit GFX 字体集，源自 GNU FreeFont，GPLv3 + font exception），随库分发。
+
 
 
 
