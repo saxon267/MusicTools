@@ -109,7 +109,8 @@ void audioPlayChord(mt::Note root, int typeIdx)
         gBuf[i] = (int16_t)val;
     }
 
-    M5.Speaker.playRaw(gBuf, kBufSamples, kChordRate, false, 0, -1, true);
+    // repeat = 1 (play once); 0 would loop the buffer forever
+    M5.Speaker.playRaw(gBuf, kBufSamples, kChordRate, false, 1, -1, true);
 }
 
 void audioPlayScale(mt::Note root, int typeIdx)
@@ -153,6 +154,7 @@ void audioPlayScale(mt::Note root, int typeIdx)
         }
     }
 
-    M5.Speaker.playRaw(gBuf, total, kScaleRate, false, 0, -1, true);
+    M5.Speaker.playRaw(gBuf, total, kScaleRate, false, 1, -1, true);
 }
+
 

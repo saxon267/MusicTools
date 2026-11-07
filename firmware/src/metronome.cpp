@@ -65,5 +65,8 @@ void metroInit()
 void metroClick(bool accented)
 {
     if (!M5.Speaker.isEnabled()) return;
-    M5.Speaker.playRaw(accented ? gAccent : gNormal, gLen, gRate, false, 0, -1, false);
+    // repeat must be 1: M5Unified treats 0 as "loop forever", which turned the
+    // 28 ms click into a continuous buzz
+    M5.Speaker.playRaw(accented ? gAccent : gNormal, gLen, gRate, false, 1, -1, false);
 }
+
