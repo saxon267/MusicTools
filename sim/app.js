@@ -15,6 +15,11 @@ const App = (() => {
     scaleRoot: MT.note(0, 0),
     scaleType: 0,
     battery: 72,
+    bpm: 100,
+    metroPattern: 0,
+    metroOn: false,
+    beat: -1,
+    tuner: { mic: false, valid: false, freq: 0, note: 0, cents: 0 },
     volume: 100,
     showVolume: false,
     playing: false,
@@ -26,6 +31,153 @@ const App = (() => {
 
   const audio = { ctx: null, master: null, nodes: [], timer: null };
   let volTimer = null;
+
+  // ---- metronome -------------------------------------------------------
+  const metro = { timer: null };
+  const clickSound = (accent) => {
+    const ctx = ensureAudio();
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.frequency.value = accent ? 1568 : 1046;
+    g.gain.setValueAtTime(accent ? 0.35 : 0.2, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.07);
+  };
+
+  const stopMetro = () => {
+    if (metro.timer) clearInterval(metro.timer);
+    metro.timer = null;
+    st.metroOn = false;
+    st.beat = -1;
+  };
+
+  const startMetro = () => {
+    stopMetro();
+    st.metroOn = true;
+    st.beat = -1;
+    const tick = () => {
+      const p = UI.METRO[st.metroPattern];
+      st.beat = (st.beat + 1) % p.beats;
+      clickSound((p.accents >> st.beat) & 1);
+      refresh();
+    };
+    tick();
+    metro.timer = setInterval(tick, 60000 / st.bpm);
+  };
+
+  // ---- tuner -----------------------------------------------------------
+  const tuner = { stream: null, analyser: null, buf: null, timer: null };
+
+  const stopTuner = () => {
+    if (tuner.timer) clearInterval(tuner.timer);
+    tuner.timer = null;
+    if (tuner.stream) {
+      for (const tr of tuner.stream.getTracks()) tr.stop();
+      tuner.stream = null;
+    }
+    tuner.analyser = null;
+    st.tuner.mic = false;
+  };
+
+  const analyseTuner = () => {
+    const an = tuner.analyser;
+    if (!an) return;
+    an.getFloatTimeDomainData(tuner.buf);
+
+    // decimate by 4 so the autocorrelation stays cheap
+    const raw = tuner.buf;
+    const n = Math.floor(raw.length / 4);
+    const x = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      x[i] = (raw[i * 4] + raw[i * 4 + 1] + raw[i * 4 + 2] + raw[i * 4 + 3]) / 4;
+    }
+
+    let energy = 0;
+    for (let i = 0; i < n; i++) energy += x[i] * x[i];
+    if (energy < 1e-5) {
+      st.tuner.valid = false;
+      return;
+    }
+
+    const rate = ensureAudio().sampleRate / 4;
+    const minLag = Math.max(2, Math.floor(rate / 1400));
+    const maxLag = Math.floor(rate / 55);
+    const corr = new Float32Array(maxLag + 2);
+    let best = 0;
+    for (let lag = minLag; lag <= maxLag; lag++) {
+      let sum = 0;
+      for (let i = 0; i + lag < n; i++) sum += x[i] * x[i + lag];
+      sum /= n - lag;
+      corr[lag] = sum;
+      if (sum > best) best = sum;
+    }
+    if (best <= 0) {
+      st.tuner.valid = false;
+      return;
+    }
+
+    const thr = best * 0.87;
+    let peak = 0;
+    for (let lag = minLag + 1; lag < maxLag; lag++) {
+      if (corr[lag] < thr) continue;
+      if (corr[lag] < corr[lag - 1] || corr[lag] < corr[lag + 1]) continue;
+      peak = lag;
+      break;
+    }
+    if (!peak) {
+      st.tuner.valid = false;
+      return;
+    }
+
+    const y0 = corr[peak - 1];
+    const y1 = corr[peak];
+    const y2 = corr[peak + 1];
+    const den = y0 - 2 * y1 + y2;
+    let shift = 0;
+    if (Math.abs(den) > 1e-9) shift = (0.5 * (y0 - y2)) / den;
+    shift = Math.max(-0.5, Math.min(0.5, shift));
+
+    const freq = rate / (peak + shift);
+    if (!(freq > 40 && freq < 1400)) {
+      st.tuner.valid = false;
+      return;
+    }
+    const midi = 69 + 12 * Math.log2(freq / 440);
+    const note = Math.round(midi);
+    st.tuner.valid = true;
+    st.tuner.freq = freq;
+    st.tuner.note = note;
+    st.tuner.cents = (midi - note) * 100;
+  };
+
+  const startTuner = async () => {
+    if (tuner.stream) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, autoGainControl: false, noiseSuppression: false },
+      });
+      const ctx = ensureAudio();
+      const src = ctx.createMediaStreamSource(stream);
+      const an = ctx.createAnalyser();
+      an.fftSize = 2048;
+      src.connect(an);
+      tuner.stream = stream;
+      tuner.analyser = an;
+      tuner.buf = new Float32Array(an.fftSize);
+      st.tuner.mic = true;
+      tuner.timer = setInterval(() => {
+        analyseTuner();
+        refresh();
+      }, 120);
+    } catch (e) {
+      st.tuner.mic = false;
+      refresh();
+    }
+  };
 
   const gainOf = () => 0.22 * (st.volume / 100);
 
@@ -247,8 +399,15 @@ const App = (() => {
   // ---------------------------------------------------------------- actions
 
   const nextPage = () => {
-    st.page = (st.page + 1) % 4;
+    const prev = st.page;
+    st.page = (st.page + 1) % 6;
     if (st.page === 1) seedChordFromSelection();
+    if (st.page === 5) {
+      stopMetro();
+      startTuner();
+    } else if (prev === 5) {
+      stopTuner();
+    }
   };
 
   const moveSlot = (d) => {
@@ -259,7 +418,25 @@ const App = (() => {
     st.selDegree = (st.selDegree + d + 7) % 7;
   };
 
+  const changeBpm = (delta) => {
+    st.bpm = Math.max(40, Math.min(240, st.bpm + delta));
+    if (st.metroOn) startMetro();
+  };
+
+  const changePattern = (delta) => {
+    st.metroPattern = (st.metroPattern + delta + UI.METRO.length) % UI.METRO.length;
+    if (st.metroOn) startMetro();
+  };
+
   const togglePlay = () => {
+    if (st.page === 4) {
+      if (st.metroOn) stopMetro();
+      else startMetro();
+      refresh();
+      return;
+    }
+    if (st.page === 5) return;
+
     if (st.playing) {
       stopAudio();
       return;
@@ -283,23 +460,27 @@ const App = (() => {
         if (st.page === 0) moveSlot(-1);
         else if (st.page === 1) transposeRoot(-1);
         else if (st.page === 2) st.gtrPage = (st.gtrPage + 2) % 3;
-        else transposeScaleRoot(-1);
+        else if (st.page === 3) transposeScaleRoot(-1);
+        else if (st.page === 4) changePattern(-1);
         break;
       case 'right':
         if (st.page === 0) moveSlot(1);
         else if (st.page === 1) transposeRoot(1);
         else if (st.page === 2) st.gtrPage = (st.gtrPage + 1) % 3;
-        else transposeScaleRoot(1);
+        else if (st.page === 3) transposeScaleRoot(1);
+        else if (st.page === 4) changePattern(1);
         break;
       case 'up':
         if (st.page === 0) moveDegree(-1);
         else if (st.page === 1 || st.page === 2) cycleType(-1);
-        else cycleScaleType(-1);
+        else if (st.page === 3) cycleScaleType(-1);
+        else if (st.page === 4) changeBpm(1);
         break;
       case 'down':
         if (st.page === 0) moveDegree(1);
         else if (st.page === 1 || st.page === 2) cycleType(1);
-        else cycleScaleType(1);
+        else if (st.page === 3) cycleScaleType(1);
+        else if (st.page === 4) changeBpm(-1);
         break;
       case 'enter':
         togglePlay();
@@ -326,7 +507,7 @@ const App = (() => {
 
   // ---------------------------------------------------------------- view
 
-  const pageNames = ['五度圈', '和弦查询', '吉他指法', '音阶'];
+  const pageNames = ['五度圈', '和弦查询', '吉他指法', '音阶', '节拍器', '调音表'];
 
   const refresh = () => {
     UI.render(st, canvas);
@@ -341,10 +522,18 @@ const App = (() => {
       detail = st.chordValid ? `${st.chordText} · ${MT.CHORD_TYPES[st.chordType].label}` : `${st.chordText}?`;
     } else if (st.page === 2) {
       detail = `${st.chordText} · 把位 ${st.gtrPage + 1}`;
-    } else {
+    } else if (st.page === 3) {
       detail = `${MT.noteName(st.scaleRoot)} ${MT.SCALE_TYPES[st.scaleType].name}`;
+    } else if (st.page === 4) {
+      detail = `${st.bpm} BPM · ${UI.METRO[st.metroPattern].name}${st.metroOn ? ' · 运行中' : ''}`;
+    } else {
+      detail = st.tuner.valid
+        ? `${st.tuner.freq.toFixed(1)} Hz · ${Math.round(st.tuner.cents)} cents`
+        : st.tuner.mic
+          ? '等待声音'
+          : '无麦克风';
     }
-    el.textContent = `${st.page + 1}/4 ${pageNames[st.page]} — ${detail}${st.playing ? ' · 播放中' : ''}`;
+    el.textContent = `${st.page + 1}/6 ${pageNames[st.page]} — ${detail}${st.playing ? ' · 播放中' : ''}`;
   };
 
   const keyMap = {
@@ -361,7 +550,8 @@ const App = (() => {
   // deep links for testing: index.html#page=2&chord=G7&scale=11&key=7
   const applyHash = () => {
     const h = new URLSearchParams(location.hash.replace('#', ''));
-    if (h.has('page')) st.page = Math.max(0, Math.min(3, Number(h.get('page')) || 0));
+    if (h.has('page')) st.page = Math.max(0, Math.min(5, Number(h.get('page')) || 0));
+    if (h.has('bpm')) st.bpm = Math.max(40, Math.min(240, Number(h.get('bpm')) || 100));
     if (h.has('key')) st.slot = MT.imod(Number(h.get('key')) || 0, 12);
     if (h.has('vol')) {
       st.volume = Math.max(0, Math.min(100, Number(h.get('vol')) || 0));
@@ -412,6 +602,8 @@ const App = (() => {
 
   return { init, refresh, state: st };
 })();
+
+
 
 
 

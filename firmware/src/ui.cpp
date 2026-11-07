@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "guitar.h"
+#include "metronome.h"
 #include "theory.h"
 
 using namespace mt;
@@ -578,9 +579,106 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
     }
     textMid(d, kW / 2, 96, f, &fonts::Font0, kDim);
 }
+
+// ---------------------------------------------------------------------------
+// page 4: metronome
 // ---------------------------------------------------------------------------
 
-// Transient bar shown for a moment after the volume keys are used.
+void drawMetroPage(LovyanGFX* d, const UiState& st)
+{
+    const MetroPattern& p = kMetroPatterns[st.metroPattern];
+
+    char bpm[8];
+    snprintf(bpm, sizeof bpm, "%d", st.bpm);
+    textTL(d, 12, 14, bpm, &fonts::Font4, kFg);
+    d->setFont(&fonts::Font4);
+    textTL(d, 12 + d->textWidth(bpm) + 8, 26, "BPM", &fonts::Font0, kDim);
+
+    d->setFont(&fonts::Font2);
+    textTL(d, kW - 12 - d->textWidth(p.name), 16, p.name, &fonts::Font2, kAccent);
+
+    // beat lamps
+    const int spacing = 26;
+    const int startX  = kW / 2 - (p.beats - 1) * spacing / 2;
+    for (int i = 0; i < p.beats; ++i) {
+        const int  x     = startX + i * spacing;
+        const bool on    = (st.beat == i);
+        const bool first = (p.accents & (1u << i)) != 0;
+        if (on) {
+            d->fillCircle(x, 58, 7, first ? rgb(230, 120, 90) : kAccent);
+        } else {
+            d->drawCircle(x, 58, 6, first ? rgb(120, 70, 60) : rgb(70, 80, 96));
+        }
+    }
+
+    textTL(d, 12, 76, st.metroOn ? "PLAYING" : "STOPPED", &fonts::Font0,
+           st.metroOn ? rgb(120, 200, 140) : kDim);
+    textTL(d, 12, 90, "ENTER: start / stop", &fonts::Font0, rgb(96, 106, 120));
+    textTL(d, 12, 100, "Fn+<> tempo   Fn+^v style", &fonts::Font0, rgb(96, 106, 120));
+}
+
+// ---------------------------------------------------------------------------
+// page 5: tuner
+// ---------------------------------------------------------------------------
+
+void drawTunerPage(LovyanGFX* d, const UiState& st)
+{
+    const TunerReading& r = st.tuner;
+
+    if (!r.mic) {
+        textTL(d, 12, 20, "NO MIC", &fonts::Font4, kDim);
+        textTL(d, 12, 56, "microphone not available", &fonts::Font0, kDim);
+        return;
+    }
+
+    if (!r.valid) {
+        textTL(d, 12, 18, "--", &fonts::Font4, kDim);
+        textTL(d, 12, 56, "listening...", &fonts::Font0, kDim);
+    } else {
+        static const char* kNames[12] = {"C", "C#", "D", "D#", "E", "F",
+                                         "F#", "G", "G#", "A", "A#", "B"};
+        const int  oct  = r.note / 12 - 1;
+        const char* nm  = kNames[imod(r.note, 12)];
+        const int  cent = (int)lroundf(r.cents);
+        const bool good = fabsf(r.cents) < 5.0f;
+
+        char line[16];
+        snprintf(line, sizeof line, "%s%d", nm, oct);
+        textTL(d, 12, 14, line, &fonts::Font4, good ? rgb(120, 200, 140) : kFg);
+
+        snprintf(line, sizeof line, "%+d", cent);
+        textTL(d, 82, 20, line, &fonts::Font2, good ? rgb(120, 200, 140) : kAccent);
+
+        snprintf(line, sizeof line, "%.1f Hz", r.freq);
+        textTL(d, 82, 38, line, &fonts::Font0, kDim);
+    }
+
+    // needle, +/-50 cents across 180 px
+    const int cx = kW / 2, y = 62;
+    d->drawFastHLine(cx - 90, y, 180, rgb(52, 60, 74));
+    for (int c = -50; c <= 50; c += 25) {
+        const int x = cx + c * 9 / 5;
+        d->drawFastVLine(x, y - (c == 0 ? 8 : 4), c == 0 ? 16 : 8,
+                         c == 0 ? kFg : rgb(70, 80, 96));
+    }
+    if (r.valid) {
+        int pos = (int)(r.cents * 9.0f / 5.0f);
+        if (pos > 90) pos = 90;
+        if (pos < -90) pos = -90;
+        const bool good = fabsf(r.cents) < 5.0f;
+        d->fillRoundRect(cx + pos - 3, y - 5, 6, 10, 2,
+                         good ? rgb(120, 200, 140) : rgb(230, 150, 90));
+    }
+
+    const char* status = !r.valid ? "" : (fabsf(r.cents) < 5.0f ? "IN TUNE"
+                                          : r.cents < 0      ? "TUNE UP"
+                                                             : "TUNE DOWN");
+    d->setFont(&fonts::Font0);
+    textTL(d, cx - d->textWidth(status) / 2, 86, status, &fonts::Font0,
+           fabsf(r.cents) < 5.0f ? rgb(120, 200, 140) : kDim);
+}
+
+// ---------------------------------------------------------------------------// Transient bar shown for a moment after the volume keys are used.
 void drawVolumeBar(LovyanGFX* d, const UiState& st)
 {
     if (!st.showVolume) return;
@@ -602,16 +700,16 @@ void drawVolumeBar(LovyanGFX* d, const UiState& st)
 
 void drawTabs(LovyanGFX* d, const UiState& st)
 {
-    static const char* kNames[4] = {"CIRCLE", "CHORD", "GUITAR", "SCALE"};
-    for (int i = 0; i < 4; ++i) {
-        const int  x  = 4 + i * 58;
+    static const char* kNames[6] = {"CIRCLE", "CHORD", "GUITAR", "SCALE", "TEMPO", "TUNER"};
+    for (int i = 0; i < 6; ++i) {
+        const int  x  = i * 40;
         const bool on = (i == st.page);
         if (on) {
-            d->fillRoundRect(x, 2, 56, 9, 2, kSelBg);
+            d->fillRoundRect(x + 1, 2, 38, 9, 2, kSelBg);
         }
         d->setFont(&fonts::Font0);
         const int w = d->textWidth(kNames[i]);
-        textTL(d, x + (56 - w) / 2, 3, kNames[i], &fonts::Font0,
+        textTL(d, x + (40 - w) / 2, 3, kNames[i], &fonts::Font0,
                on ? kFg : rgb(88, 98, 112));
     }
     d->drawFastHLine(0, kTabH, kW, kLine);
@@ -619,14 +717,16 @@ void drawTabs(LovyanGFX* d, const UiState& st)
 
 void drawFooter(LovyanGFX* d, const UiState& st)
 {
-    static const char* kHints[4] = {
+    static const char* kHints[6] = {
         "TAB chord  Fn+<> key  ^v  ENTER",
         "TAB guitar  Fn+<> root  ^v type",
         "TAB scale  Fn+<> voice  ^v type",
-        "TAB circle  Fn+<> root ^v ENTER",
+        "TAB tempo  Fn+<> root ^v ENTER",
+        "TAB tuner  Fn+<> tempo  ^v style",
+        "TAB circle  play a note  (mic)",
     };
     d->drawFastHLine(4, 124, kW - 8, kLine);
-    textTL(d, 5, 126, kHints[st.page % 4], &fonts::Font0, rgb(104, 116, 132));
+    textTL(d, 5, 126, kHints[st.page % 6], &fonts::Font0, rgb(104, 116, 132));
 
     char bat[8];
     if (st.battery < 0) {
@@ -672,8 +772,12 @@ void uiRender(const UiState& st)
         drawChordPage(d, st);
     } else if (st.page == 2) {
         drawGuitarPage(d, st);
-    } else {
+    } else if (st.page == 3) {
         drawScalePage(d, st);
+    } else if (st.page == 4) {
+        drawMetroPage(d, st);
+    } else {
+        drawTunerPage(d, st);
     }
     drawVolumeBar(d, st);
     drawFooter(d, st);
@@ -682,6 +786,8 @@ void uiRender(const UiState& st)
         gCanvas->pushSprite(0, 0);
     }
 }
+
+
 
 
 

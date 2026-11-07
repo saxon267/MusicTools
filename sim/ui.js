@@ -456,25 +456,128 @@ const UI = (() => {
   // ----------------------------------------------------------------
 
   const drawTabs = (st) => {
-    const names = ['CIRCLE', 'CHORD', 'GUITAR', 'SCALE'];
+    const names = ['CIRCLE', 'CHORD', 'GUITAR', 'SCALE', 'TEMPO', 'TUNER'];
     const d = C.ctx;
-    for (let i = 0; i < 4; i++) {
-      const x = 4 + i * 58;
+    for (let i = 0; i < 6; i++) {
+      const x = i * 40;
       const on = i === st.page;
       if (on) {
         d.fillStyle = COL.selBg;
         d.beginPath();
-        d.roundRect(x, 2, 56, 9, 2);
+        d.roundRect(x + 1, 2, 38, 9, 2);
         d.fill();
       }
       const w = measure(names[i], F_TINY);
-      textTL(x + (56 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#58626f');
+      textTL(x + (40 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#58626f');
     }
     d.strokeStyle = COL.line;
     d.beginPath();
     d.moveTo(0, 12);
     d.lineTo(W, 12);
     d.stroke();
+  };
+
+  // ---------------------------------------------------------------- page 4
+
+  const METRO = [
+    { name: '4/4', beats: 4, accents: 0x0001 },
+    { name: '3/4', beats: 3, accents: 0x0001 },
+    { name: '2/4', beats: 2, accents: 0x0001 },
+    { name: '6/8', beats: 6, accents: 0x0009 },
+    { name: '5/4', beats: 5, accents: 0x0001 },
+    { name: '7/8', beats: 7, accents: 0x0015 },
+  ];
+
+  const drawMetroPage = (st) => {
+    const d = C.ctx;
+    const p = METRO[st.metroPattern];
+
+    textTL(12, 14, String(st.bpm), F_BIG, COL.fg);
+    const bw = measure(String(st.bpm), F_BIG);
+    textTL(12 + bw + 8, 26, 'BPM', F_TINY, COL.dim);
+
+    const pw = measure(p.name, F_MID);
+    textTL(W - 12 - pw, 16, p.name, F_MID, COL.accent);
+
+    const spacing = 26;
+    const startX = W / 2 - ((p.beats - 1) * spacing) / 2;
+    for (let i = 0; i < p.beats; i++) {
+      const x = startX + i * spacing;
+      const on = st.beat === i;
+      const first = (p.accents & (1 << i)) !== 0;
+      if (on) {
+        d.fillStyle = first ? '#e6785a' : COL.accent;
+        d.beginPath();
+        d.arc(x, 58, 7, 0, Math.PI * 2);
+        d.fill();
+      } else {
+        d.strokeStyle = first ? '#78463c' : '#46505f';
+        d.lineWidth = 1.2;
+        d.beginPath();
+        d.arc(x, 58, 6, 0, Math.PI * 2);
+        d.stroke();
+      }
+    }
+
+    textTL(12, 76, st.metroOn ? 'PLAYING' : 'STOPPED', F_TINY, st.metroOn ? '#78c88c' : COL.dim);
+    textTL(12, 90, 'ENTER: start / stop', F_TINY, '#606a78');
+    textTL(12, 100, 'Fn+<> tempo   Fn+^v style', F_TINY, '#606a78');
+  };
+
+  // ---------------------------------------------------------------- page 5
+
+  const drawTunerPage = (st) => {
+    const d = C.ctx;
+    const r = st.tuner;
+
+    if (!r.mic) {
+      textTL(12, 20, 'NO MIC', F_BIG, COL.dim);
+      textTL(12, 50, 'mic unavailable', F_TINY, COL.dim);
+      return;
+    }
+    if (!r.valid) {
+      textTL(12, 18, '--', F_BIG, COL.dim);
+      textTL(12, 50, 'listening...', F_TINY, COL.dim);
+    } else {
+      const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+      const good = Math.abs(r.cents) < 5;
+      const oct = Math.floor(r.note / 12) - 1;
+      textTL(12, 14, `${names[MT.imod(r.note, 12)]}${oct}`, F_BIG, good ? '#78c88c' : COL.fg);
+      textTL(82, 20, (r.cents >= 0 ? '+' : '') + Math.round(r.cents), F_MID, good ? '#78c88c' : COL.accent);
+      textTL(82, 38, `${r.freq.toFixed(1)} Hz`, F_TINY, COL.dim);
+    }
+
+    const cx = W / 2;
+    const y = 62;
+    d.strokeStyle = '#343c4a';
+    d.lineWidth = 1;
+    d.beginPath();
+    d.moveTo(cx - 90, y);
+    d.lineTo(cx + 90, y);
+    d.stroke();
+
+    for (let c = -50; c <= 50; c += 25) {
+      const x = cx + (c * 9) / 5;
+      d.strokeStyle = c === 0 ? COL.fg : '#46505f';
+      d.beginPath();
+      d.moveTo(x, y - (c === 0 ? 8 : 4));
+      d.lineTo(x, y + (c === 0 ? 8 : 4));
+      d.stroke();
+    }
+
+    if (r.valid) {
+      const good = Math.abs(r.cents) < 5;
+      let pos = (r.cents * 9) / 5;
+      pos = Math.max(-90, Math.min(90, pos));
+      d.fillStyle = good ? '#78c88c' : '#e6965a';
+      d.beginPath();
+      d.roundRect(cx + pos - 3, y - 5, 6, 10, 2);
+      d.fill();
+    }
+
+    const status = !r.valid ? '' : Math.abs(r.cents) < 5 ? 'IN TUNE' : r.cents < 0 ? 'TUNE UP' : 'TUNE DOWN';
+    const sw = measure(status, F_TINY);
+    textTL(cx - sw / 2, 86, status, F_TINY, Math.abs(r.cents) < 5 ? '#78c88c' : COL.dim);
   };
 
   const drawVolumeBar = (st) => {
@@ -511,7 +614,9 @@ const UI = (() => {
       'TAB chord  Fn+<> key  ^v  ENTER',
       'TAB guitar  Fn+<> root  ^v type',
       'TAB scale  Fn+<> voice  ^v type',
-      'TAB circle  Fn+<> root ^v ENTER',
+      'TAB tempo  Fn+<> root ^v ENTER',
+      'TAB tuner  Fn+<> tempo  ^v style',
+      'TAB circle  play a note  (mic)',
     ];
     const d = C.ctx;
     d.strokeStyle = COL.line;
@@ -520,7 +625,7 @@ const UI = (() => {
     d.lineTo(W - 4, 124);
     d.stroke();
 
-    textTL(5, 125, hints[st.page % 4], F_TINY, COL.footer);
+    textTL(5, 125, hints[st.page % 6], F_TINY, COL.footer);
 
     const bat = st.battery < 0 ? '--' : `${st.battery}%`;
     const w = measure(bat, F_TINY);
@@ -540,16 +645,21 @@ const UI = (() => {
       drawPanel(st);
     } else if (st.page === 1) drawChordPage(st);
     else if (st.page === 2) drawGuitarPage(st);
-    else drawScalePage(st);
+    else if (st.page === 3) drawScalePage(st);
+    else if (st.page === 4) drawMetroPage(st);
+    else drawTunerPage(st);
 
     drawVolumeBar(st);
     drawFooter(st);
   };
 
-  return { render, W, H };
+  return { render, W, H, METRO };
 })();
 
 if (typeof module !== 'undefined') module.exports = UI;
+
+
+
 
 
 

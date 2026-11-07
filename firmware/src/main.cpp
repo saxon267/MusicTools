@@ -22,7 +22,9 @@
 #include <cstring>
 
 #include "audio.h"
+#include "metronome.h"
 #include "theory.h"
+#include "tuner.h"
 #include "ui.h"
 
 namespace {
@@ -32,6 +34,8 @@ Preferences gPrefs;
 uint32_t gVolShownUntil = 0;
 uint32_t gVolSavedAt    = 0;
 bool     gVolSaveDirty  = false;
+uint32_t gNextBeatUs    = 0;
+uint32_t gLastTunerUi   = 0;
 bool    gDirty = true;
 
 struct RepeatKey {
@@ -333,6 +337,13 @@ void setup()
     g.minorView  = false;
     g.selDegree  = 4;  // the V chord is a useful default
     g.battery    = M5.Power.getBatteryLevel();
+    metroInit();
+    tunerInit();
+    g.bpm          = 100;
+    g.metroPattern = 0;
+    g.metroOn      = false;
+    g.beat         = -1;
+
     gPrefs.begin("fifths", false);
     g.volume     = (int)gPrefs.getUChar("vol", 100);
     audioSetVolume(g.volume);
@@ -378,8 +389,12 @@ void loop()
     if (fireTab || fireLeft || fireRight || fireUp || fireDown || fireDel) gDirty = true;
 
     if (fireTab) {
-        g.page = (g.page + 1) % 4;
+        g.page = (g.page + 1) % 6;
         if (g.page == 1) seedChordFromSelection();
+        if (g.page == 5) {
+            // keep the microphone clean while tuning
+            g.metroOn = false;
+        }
     }
 
     if (g.page == 0) {
@@ -399,11 +414,19 @@ void loop()
         if (fireUp) cycleType(-1);
         if (fireDown) cycleType(1);
         if (fireDel) deleteLastChar();
-    } else {
+    } else if (g.page == 3) {
         if (fireLeft) transposeScaleRoot(-1);
         if (fireRight) transposeScaleRoot(1);
         if (fireUp) cycleScaleType(-1);
         if (fireDown) cycleScaleType(1);
+    } else if (g.page == 4) {
+        if (fireLeft) g.metroPattern = (g.metroPattern + kMetroPatternCount - 1) % kMetroPatternCount;
+        if (fireRight) g.metroPattern = (g.metroPattern + 1) % kMetroPatternCount;
+        if (fireUp) g.bpm = g.bpm >= 240 ? 240 : g.bpm + 1;
+        if (fireDown) g.bpm = g.bpm <= 40 ? 40 : g.bpm - 1;
+        if (fireUp || fireDown) g.beat = -1;
+    } else {
+        // tuner page has no navigation, the reading updates by itself
     }
 
     if (!ks.fn && pollTypedKeys()) gDirty = true;
@@ -463,13 +486,38 @@ void loop()
         gVolSaveDirty = false;
     }
 
+    // metronome: schedule against micros() rather than the loop rate
+    if (g.metroOn) {
+        const uint32_t t = micros();
+        if ((int32_t)(t - gNextBeatUs) >= 0) {
+            const MetroPattern& p = kMetroPatterns[g.metroPattern];
+            g.beat = (g.beat + 1) % p.beats;
+            metroClick(((p.accents >> g.beat) & 1u) != 0);
+            const uint32_t interval = 60000000UL / (uint32_t)g.bpm;
+            gNextBeatUs += interval;
+            if ((int32_t)(t - gNextBeatUs) > 0) gNextBeatUs = t + interval;
+            gDirty = true;
+        }
+    }
+
+    if (g.page == 5) {
+        tunerPoll();
+        if (now - gLastTunerUi > 80) {
+            gLastTunerUi = now;
+            g.tuner      = tunerLast();
+            gDirty       = true;
+        }
+    }
+
     if (gDirty) {
         uiRender(g);
         gDirty = false;
     }
 
-    delay(5);
+    delay(g.metroOn ? 2 : 5);
 }
+
+
 
 
 

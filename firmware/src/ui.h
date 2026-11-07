@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "theory.h"
+#include "tuner.h"
 
 struct UiState {
     int  page;        // 0 = circle, 1 = chord query, 2 = guitar, 3 = scales
@@ -22,11 +23,21 @@ struct UiState {
     int       gtrPage;  // visible page of guitar voicings
     mt::Note  scaleRoot;
     int       scaleType;
+
+    // metronome page
+    int  bpm;
+    int  metroPattern;
+    bool metroOn;
+    int  beat;  // -1 before the first click
+
+    // tuner page
+    TunerReading tuner;
 };
 
 void uiBegin();
 bool uiHasCanvas();
 void uiRender(const UiState& st);
+
 
 
 
