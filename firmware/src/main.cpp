@@ -386,6 +386,8 @@ void loop()
             playSelection();
         } else if (g.page <= 2) {
             playQuery();
+        } else {
+            audioPlayScale(g.scaleRoot, g.scaleType);
         }
     }
 
@@ -425,6 +427,7 @@ void loop()
 
     delay(5);
 }
+
 
 
 

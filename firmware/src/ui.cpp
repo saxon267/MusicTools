@@ -18,12 +18,13 @@ constexpr int kH = 135;
 constexpr float kDeg = 0.0174532925f;
 
 // wheel geometry
+constexpr int kTabH   = 12;  // top page tabs
 constexpr int kCx     = 68;
-constexpr int kCy     = 62;
-constexpr int kROut   = 58;
-constexpr int kRMajIn = 41;
-constexpr int kRMinIn = 26;
-constexpr int kRHub   = 25;
+constexpr int kCy     = 68;
+constexpr int kROut   = 53;
+constexpr int kRMajIn = 38;
+constexpr int kRMinIn = 24;
+constexpr int kRHub   = 22;
 constexpr int kPanelX = 132;
 
 constexpr uint16_t rgb(uint8_t r, uint8_t g, uint8_t b)
@@ -158,7 +159,7 @@ void drawWheel(LovyanGFX* d, const UiState& st)
 
         char maj[4];
         noteName(majorTonic(i), maj);
-        textMid(d, kCx + (int)(49.5f * cosf(am)), kCy + (int)(49.5f * sinf(am)), maj, &fonts::Font0,
+        textMid(d, kCx + (int)(45.5f * cosf(am)), kCy + (int)(45.5f * sinf(am)), maj, &fonts::Font0,
                 sel ? TFT_WHITE : kInk);
 
         char min[4];
@@ -166,7 +167,7 @@ void drawWheel(LovyanGFX* d, const UiState& st)
         for (char* p = min; *p; ++p) {
             if (*p >= 'A' && *p <= 'G') *p = (char)(*p - 'A' + 'a');
         }
-        textMid(d, kCx + (int)(33.5f * cosf(am)), kCy + (int)(33.5f * sinf(am)), min, &fonts::Font0,
+        textMid(d, kCx + (int)(31.0f * cosf(am)), kCy + (int)(31.0f * sinf(am)), min, &fonts::Font0,
                 sel ? TFT_WHITE : rgb(228, 232, 238));
     }
 
@@ -183,7 +184,7 @@ void drawWheel(LovyanGFX* d, const UiState& st)
         name[n]     = 'm';
         name[n + 1] = '\0';
     }
-    textMid(d, kCx, kCy - 5, name, &fonts::Font4, kFg);
+    textMid(d, kCx, kCy - 4, name, &fonts::Font4, kFg);
 
     const int sig = signature(st.slot);
     char      sbuf[8];
@@ -194,7 +195,7 @@ void drawWheel(LovyanGFX* d, const UiState& st)
     } else {
         snprintf(sbuf, sizeof sbuf, "0");
     }
-    textMid(d, kCx, kCy + 13, sbuf, &fonts::Font0, kDim);
+    textMid(d, kCx, kCy + 11, sbuf, &fonts::Font0, kDim);
 }
 
 void drawPanel(LovyanGFX* d, const UiState& st)
@@ -211,45 +212,12 @@ void drawPanel(LovyanGFX* d, const UiState& st)
     char header[20];
     snprintf(header, sizeof header, "%s%s %s", tname, st.minorView ? "m" : "",
              st.minorView ? "MINOR" : "MAJOR");
-    textTL(d, kPanelX + 2, 3, header, &fonts::Font2, kFg);
+    textTL(d, kPanelX + 2, 13, header, &fonts::Font2, kFg);
 
-    const int sig = signature(st.slot);
-    char      sbuf[8];
-    if (sig > 0) {
-        snprintf(sbuf, sizeof sbuf, "%d#", sig);
-    } else if (sig < 0) {
-        snprintf(sbuf, sizeof sbuf, "%db", -sig);
-    } else {
-        snprintf(sbuf, sizeof sbuf, "0");
-    }
-
-    char scaleTxt[32];
-    int  n = snprintf(scaleTxt, sizeof scaleTxt, "%s ", sbuf);
+    // the tab bar costs 12 px, so the scale line moved to the scale page; the
+    // chord tones on the right of each row still spell the key out
     for (int i = 0; i < 7; ++i) {
-        char nm[4];
-        noteName(sc.notes[i], nm);
-        n += snprintf(scaleTxt + n, sizeof scaleTxt - n, "%s%s", i ? " " : "", nm);
-        if (n >= (int)sizeof scaleTxt - 4) break;
-    }
-    // Sharp keys spell out to 22+ characters; drop the separators first and the
-    // signature last so the line can never run under the panel edge.
-    d->setFont(&fonts::Font0);
-    const int maxW = kW - (kPanelX + 2) - 6;
-    if (d->textWidth(scaleTxt) > maxW) {
-        n = snprintf(scaleTxt, sizeof scaleTxt, "%s ", sbuf);
-        for (int i = 0; i < 7; ++i) {
-            char nm[4];
-            noteName(sc.notes[i], nm);
-            n += snprintf(scaleTxt + n, sizeof scaleTxt - n, "%s", nm);
-        }
-        if (d->textWidth(scaleTxt) > maxW) {
-            snprintf(scaleTxt, sizeof scaleTxt, "%s", sbuf);
-        }
-    }
-    textTL(d, kPanelX + 2, 19, scaleTxt, &fonts::Font0, kDim);
-
-    for (int i = 0; i < 7; ++i) {
-        const int  y   = 31 + i * 13;
+        const int  y   = 32 + i * 13;
         const bool sel = (i == st.selDegree);
 
         if (sel) {
@@ -266,7 +234,7 @@ void drawPanel(LovyanGFX* d, const UiState& st)
 
         char cn[8];
         chordName(chords[i], cn);
-        textML(d, kPanelX + 22, y + 6, cn, &fonts::FreeSans9pt7b, sel ? kFg : rgb(210, 218, 228));
+        textML(d, kPanelX + 25, y + 6, cn, &fonts::FreeSans9pt7b, sel ? kFg : rgb(210, 218, 228));
 
         char notes[12];
         int  m = 0;
@@ -276,7 +244,7 @@ void drawPanel(LovyanGFX* d, const UiState& st)
             m += snprintf(notes + m, sizeof notes - m, "%s%s", k ? " " : "", nm);
             if (m >= (int)sizeof notes - 4) break;
         }
-        textTL(d, kPanelX + 54, y + 1, notes, &fonts::Font0, kChordDim);
+        textTL(d, kPanelX + 58, y + 1, notes, &fonts::Font0, kChordDim);
     }
 
     d->drawFastVLine(kPanelX - 4, 4, 118, kLine);
@@ -289,10 +257,10 @@ void drawPanel(LovyanGFX* d, const UiState& st)
 void drawChordPage(LovyanGFX* d, const UiState& st)
 {
     if (!st.chordValid) {
-        textTL(d, 6, 4, "?", &fonts::Font4, kDim);
-        textTL(d, 6, 40, "unknown chord", &fonts::Font0, kDim);
-        textTL(d, 6, 52, "keep typing", &fonts::Font0, kDim);
-        textTL(d, 6, 88, "ENTER: play", &fonts::Font0, rgb(96, 106, 120));
+        textTL(d, 6, 16, "?", &fonts::Font4, kDim);
+        textTL(d, 6, 52, "unknown chord", &fonts::Font0, kDim);
+        textTL(d, 6, 64, "keep typing", &fonts::Font0, kDim);
+        textTL(d, 6, 100, "ENTER: play", &fonts::Font0, rgb(96, 106, 120));
         return;
     }
 
@@ -301,9 +269,9 @@ void drawChordPage(LovyanGFX* d, const UiState& st)
     // symbol, shrinking to the smaller font for long names such as G#m7b5
     d->setFont(&fonts::Font4);
     const bool big = d->textWidth(st.chordText) <= 104;
-    textTL(d, 6, 3, st.chordText, big ? &fonts::Font4 : &fonts::Font2, kFg);
+    textTL(d, 6, 13, st.chordText, big ? &fonts::Font4 : &fonts::Font2, kFg);
 
-    textTL(d, 6, big ? 36 : 26, t.label, &fonts::Font0, kDim);
+    textTL(d, 6, big ? 46 : 38, t.label, &fonts::Font0, kDim);
 
     Note notes[4];
     spellChord(st.chordRoot, st.chordType, notes);
@@ -315,14 +283,14 @@ void drawChordPage(LovyanGFX* d, const UiState& st)
         noteName(notes[i], nm);
         n += snprintf(nb + n, sizeof nb - n, "%s%s", i ? "  " : "", nm);
     }
-    textTL(d, 6, 48, nb, &fonts::Font0, kFg);
+    textTL(d, 6, 58, nb, &fonts::Font0, kFg);
 
     char ib[24];
     n = 0;
     for (int i = 0; i < t.n; ++i) {
         n += snprintf(ib + n, sizeof ib - n, "%s%s", i ? "  " : "", intervalName(t.semis[i]));
     }
-    textTL(d, 6, 58, ib, &fonts::Font0, kDim);
+    textTL(d, 6, 68, ib, &fonts::Font0, kDim);
 
     Note target;
     if (dominantTarget(st.chordRoot, st.chordType, target)) {
@@ -330,15 +298,15 @@ void drawChordPage(LovyanGFX* d, const UiState& st)
         noteName(target, tn);
         char rb[20];
         snprintf(rb, sizeof rb, "V7 of %s", tn);
-        textTL(d, 6, 72, rb, &fonts::Font0, kAccent);
+        textTL(d, 6, 82, rb, &fonts::Font0, kAccent);
     }
 
-    textTL(d, 6, 88, "ENTER: play", &fonts::Font0, rgb(96, 106, 120));
-    textTL(d, 6, 99, "BACKSPACE: edit", &fonts::Font0, rgb(84, 94, 108));
+    textTL(d, 6, 100, "ENTER: play", &fonts::Font0, rgb(96, 106, 120));
+    textTL(d, 6, 110, "BACKSPACE: edit", &fonts::Font0, rgb(84, 94, 108));
 
     // right column: the same chord seen from every key
-    d->drawFastVLine(120, 3, 118, kLine);
-    textTL(d, 124, 3, "IN KEYS", &fonts::Font0, kDim);
+    d->drawFastVLine(120, 14, 108, kLine);
+    textTL(d, 124, 14, "IN KEYS", &fonts::Font0, kDim);
 
     KeyHit hits[12];
     const int nh = findChordInKeys(st.chordRoot, st.chordType, hits, 12);
@@ -351,7 +319,7 @@ void drawChordPage(LovyanGFX* d, const UiState& st)
 
     const int shown = nh > 7 ? 7 : nh;
     for (int i = 0; i < shown; ++i) {
-        const int y = 16 + i * 13;
+        const int y = 26 + i * 13;
 
         Note tonic = majorTonic(hits[i].slot);
         if (hits[i].minor) tonic = relativeMinorOf(tonic);
@@ -377,7 +345,7 @@ void drawChordPage(LovyanGFX* d, const UiState& st)
     if (nh > shown) {
         char more[16];
         snprintf(more, sizeof more, "+%d more", nh - shown);
-        textTL(d, 124, 16 + shown * 13, more, &fonts::Font0, kDim);
+        textTL(d, 124, 26 + shown * 13, more, &fonts::Font0, kDim);
     }
 }
 
@@ -387,7 +355,7 @@ void drawChordPage(LovyanGFX* d, const UiState& st)
 
 void drawChordBox(LovyanGFX* d, int x, int y, const Fingering& f)
 {
-    const int dx = 10, dy = 13, nFrets = 5;
+    const int dx = 10, dy = 12, nFrets = 5;
     int       mn = 99, firstSounding = -1;
     for (int i = 0; i < 6; ++i) {
         if (f.fret[i] >= 0 && firstSounding < 0) firstSounding = i;
@@ -454,8 +422,8 @@ void drawChordBox(LovyanGFX* d, int x, int y, const Fingering& f)
 void drawGuitarPage(LovyanGFX* d, const UiState& st)
 {
     if (!st.chordValid) {
-        textTL(d, 6, 4, "?", &fonts::Font4, kDim);
-        textTL(d, 6, 40, "unknown chord", &fonts::Font0, kDim);
+        textTL(d, 6, 16, "?", &fonts::Font4, kDim);
+        textTL(d, 6, 52, "unknown chord", &fonts::Font0, kDim);
         return;
     }
 
@@ -473,10 +441,10 @@ void drawGuitarPage(LovyanGFX* d, const UiState& st)
         nShapes   = guitarShapes(st.chordRoot, st.chordType, shapes, 6);
     }
 
-    textTL(d, 6, 2, st.chordText, &fonts::Font2, kFg);
+    textTL(d, 6, 13, st.chordText, &fonts::Font2, kFg);
     d->setFont(&fonts::Font2);
     const int sw = d->textWidth(st.chordText);
-    textTL(d, 6 + sw + 6, 7, t.label, &fonts::Font0, kDim);
+    textTL(d, 6 + sw + 6, 18, t.label, &fonts::Font0, kDim);
 
     const int perPage = 3;
     const int pages   = (nShapes + perPage - 1) / perPage;
@@ -486,12 +454,12 @@ void drawGuitarPage(LovyanGFX* d, const UiState& st)
         snprintf(vb, sizeof vb, "%d-%d/%d", page * perPage + 1,
                  (page * perPage + perPage > nShapes) ? nShapes : page * perPage + perPage, nShapes);
         d->setFont(&fonts::Font0);
-        textTL(d, kW - 5 - d->textWidth(vb), 6, vb, &fonts::Font0, kDim);
+        textTL(d, kW - 5 - d->textWidth(vb), 17, vb, &fonts::Font0, kDim);
     }
 
     if (nShapes == 0) {
-        textTL(d, 30, 50, "no playable shape", &fonts::Font0, kDim);
-        textTL(d, 30, 62, "for this chord", &fonts::Font0, kDim);
+        textTL(d, 30, 56, "no playable shape", &fonts::Font0, kDim);
+        textTL(d, 30, 68, "for this chord", &fonts::Font0, kDim);
         return;
     }
 
@@ -499,7 +467,7 @@ void drawGuitarPage(LovyanGFX* d, const UiState& st)
     for (int k = 0; k < perPage; ++k) {
         const int i = page * perPage + k;
         if (i >= nShapes) break;
-        drawChordBox(d, xs[k], 30, shapes[i]);
+        drawChordBox(d, xs[k], 38, shapes[i]);
     }
 
     // chord tones under the diagrams
@@ -513,7 +481,7 @@ void drawGuitarPage(LovyanGFX* d, const UiState& st)
         n += snprintf(nb + n, sizeof nb - n, "%s%s", i ? "  " : "", nm);
     }
     d->setFont(&fonts::Font0);
-    textTL(d, kW / 2 - 3 * (int)strlen(nb), 104, nb, &fonts::Font0, kDim);
+    textTL(d, kW / 2 - 3 * (int)strlen(nb), 108, nb, &fonts::Font0, kDim);
 }
 
 
@@ -533,12 +501,12 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
     noteName(st.scaleRoot, rn);
     char header[24];
     snprintf(header, sizeof header, "%s %s", rn, t.name);
-    textTL(d, 6, 2, header, &fonts::Font2, kFg);
+    textTL(d, 6, 13, header, &fonts::Font2, kFg);
 
     char idx[8];
     snprintf(idx, sizeof idx, "%d/%d", st.scaleType + 1, kScaleTypeCount);
     d->setFont(&fonts::Font0);
-    textTL(d, kW - 5 - d->textWidth(idx), 7, idx, &fonts::Font0, kDim);
+    textTL(d, kW - 5 - d->textWidth(idx), 17, idx, &fonts::Font0, kDim);
 
     // scale tones in order, with their degrees underneath
     const int colW = 220 / t.n;
@@ -546,7 +514,7 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
         const int cx = 10 + colW * i + colW / 2;
         char      nm[4];
         noteName(notes[i], nm);
-        textMid(d, cx, 33, nm, &fonts::Font2, kFg);
+        textMid(d, cx, 44, nm, &fonts::Font2, kFg);
 
         char deg[4];
         int  k = 0;
@@ -554,7 +522,7 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
         for (int a = 0; a < -notes[i].acc; ++a) deg[k++] = 'b';
         deg[k++] = (char)('1' + t.degrees[i]);
         deg[k]   = '\0';
-        textMid(d, cx, 46, deg, &fonts::Font0, kDim);
+        textMid(d, cx, 56, deg, &fonts::Font0, kDim);
     }
 
     // twelve pitch classes, the ones inside the scale lit up
@@ -575,15 +543,19 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
             if (pitchClass(notes[i]) == pc) deg = i;
         }
         if (deg >= 0) {
-            d->fillRoundRect(x, 56, 16, 26, 2, rgb(50, 64, 88));
+            d->fillRoundRect(x, 62, 16, 26, 2, rgb(50, 64, 88));
         } else {
-            d->drawRoundRect(x, 56, 16, 26, 2, rgb(44, 51, 62));
+            d->drawRoundRect(x, 62, 16, 26, 2, rgb(44, 51, 62));
         }
 
-        Note nm = pcToNote(pc, prefFlat);
+        // inside the scale use the spelled tone (F#, not Gb), outside fall back
         char b[4];
-        noteName(nm, b);
-        textMid(d, x + 8, 64, b, &fonts::Font0, deg >= 0 ? kFg : rgb(88, 98, 112));
+        if (deg >= 0) {
+            noteName(notes[deg], b);
+        } else {
+            noteName(pcToNote(pc, prefFlat), b);
+        }
+        textMid(d, x + 8, 70, b, &fonts::Font0, deg >= 0 ? kFg : rgb(88, 98, 112));
 
         if (deg >= 0) {
             char dg[4];
@@ -592,7 +564,7 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
             for (int a = 0; a < -notes[deg].acc; ++a) dg[k++] = 'b';
             dg[k++] = (char)('1' + t.degrees[deg]);
             dg[k]   = '\0';
-            textMid(d, x + 8, 75, dg, &fonts::Font0, kAccent);
+            textMid(d, x + 8, 81, dg, &fonts::Font0, kAccent);
         }
     }
 
@@ -603,9 +575,26 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
         const int step = (i + 1 < t.n) ? (t.semis[i + 1] - t.semis[i]) : (12 - t.semis[i]);
         k += snprintf(f + k, sizeof f - k, "%s%d", i ? " " : "", step);
     }
-    textMid(d, kW / 2, 94, f, &fonts::Font0, kDim);
+    textMid(d, kW / 2, 96, f, &fonts::Font0, kDim);
 }
 // ---------------------------------------------------------------------------
+
+void drawTabs(LovyanGFX* d, const UiState& st)
+{
+    static const char* kNames[4] = {"CIRCLE", "CHORD", "GUITAR", "SCALE"};
+    for (int i = 0; i < 4; ++i) {
+        const int  x  = 4 + i * 58;
+        const bool on = (i == st.page);
+        if (on) {
+            d->fillRoundRect(x, 2, 56, 9, 2, kSelBg);
+        }
+        d->setFont(&fonts::Font0);
+        const int w = d->textWidth(kNames[i]);
+        textTL(d, x + (56 - w) / 2, 3, kNames[i], &fonts::Font0,
+               on ? kFg : rgb(88, 98, 112));
+    }
+    d->drawFastHLine(0, kTabH, kW, kLine);
+}
 
 void drawFooter(LovyanGFX* d, const UiState& st)
 {
@@ -613,7 +602,7 @@ void drawFooter(LovyanGFX* d, const UiState& st)
         "TAB chord  Fn+<> key  ^v  ENTER",
         "TAB guitar  Fn+<> root  ^v type",
         "TAB scale  Fn+<> voice  ^v type",
-        "TAB circle  Fn+<> root  ^v type",
+        "TAB circle  Fn+<> root ^v ENTER",
     };
     d->drawFastHLine(4, 124, kW - 8, kLine);
     textTL(d, 5, 126, kHints[st.page % 4], &fonts::Font0, rgb(104, 116, 132));
@@ -654,6 +643,7 @@ void uiRender(const UiState& st)
     LovyanGFX* d = gCanvas ? (LovyanGFX*)gCanvas : (LovyanGFX*)&M5.Display;
 
     d->fillScreen(kBg);
+    drawTabs(d, st);
     if (st.page == 0) {
         drawWheel(d, st);
         drawPanel(d, st);
@@ -670,6 +660,11 @@ void uiRender(const UiState& st)
         gCanvas->pushSprite(0, 0);
     }
 }
+
+
+
+
+
 
 
 

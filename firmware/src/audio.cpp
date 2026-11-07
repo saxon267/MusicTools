@@ -5,11 +5,14 @@
 
 namespace {
 
-constexpr uint32_t kRate   = 16000;
-constexpr int      kSamples = (int)(kRate * 0.9f);  // 0.9 s of audio, ~28.8 KB
-constexpr int      kMaxVoices = 5;
+// One buffer shared by both sounds: a chord needs 14400 samples at 16 kHz
+// (0.9 s) and a scale needs at most 8 * 0.22 s at 8 kHz, which fits inside.
+constexpr int      kBufSamples = 14400;
+constexpr uint32_t kChordRate  = 16000;
+constexpr uint32_t kScaleRate  = 8000;
+constexpr int      kMaxVoices  = 5;
 
-int16_t gBuf[kSamples];
+int16_t gBuf[kBufSamples];
 
 float noteFreq(int midi)
 {
@@ -27,6 +30,11 @@ void audioInit()
 bool audioBusy()
 {
     return M5.Speaker.isEnabled() && M5.Speaker.isPlaying();
+}
+
+void audioStop()
+{
+    if (M5.Speaker.isEnabled()) M5.Speaker.stop();
 }
 
 void audioPlayChord(mt::Note root, int typeIdx)
@@ -52,18 +60,18 @@ void audioPlayChord(mt::Note root, int typeIdx)
     amp[nv]  = 0.35f;
     ++nv;
 
-    // normalise the mix so the chord peaks near full scale; the old fixed gain
-    // left it at about half of what the speaker can take
+    // normalise the mix so the chord peaks near full scale; a fixed gain left
+    // it at about half of what the speaker can take
     float ampSum = 0.0f;
     for (int v = 0; v < nv; ++v) ampSum += amp[v];
     const float gain = 30000.0f / (ampSum * 1.42f);  // 1.42 = peak of the harmonic mix
 
-    const float invRate = 1.0f / (float)kRate;
-    const float dur     = kSamples * invRate;
+    const float invRate = 1.0f / (float)kChordRate;
+    const float dur     = kBufSamples * invRate;
     float       ph[kMaxVoices];
     for (int v = 0; v < nv; ++v) ph[v] = 0.0f;
 
-    for (int i = 0; i < kSamples; ++i) {
+    for (int i = 0; i < kBufSamples; ++i) {
         const float tsec = i * invRate;
 
         float env;
@@ -93,11 +101,49 @@ void audioPlayChord(mt::Note root, int typeIdx)
         gBuf[i] = (int16_t)val;
     }
 
-    M5.Speaker.playRaw(gBuf, kSamples, kRate, false, 0, -1, true);
+    M5.Speaker.playRaw(gBuf, kBufSamples, kChordRate, false, 0, -1, true);
 }
 
-void audioStop()
+void audioPlayScale(mt::Note root, int typeIdx)
 {
-    if (M5.Speaker.isEnabled()) M5.Speaker.stop();
-}
+    if (!M5.Speaker.isEnabled()) return;
+    if (typeIdx < 0 || typeIdx >= mt::kScaleTypeCount) return;
 
+    const mt::ScaleType& t = mt::kScaleTypes[typeIdx];
+
+    // one octave from C4, each note 0.22 s
+    const int baseMidi = 60 + mt::pitchClass(root);
+    const int perNote  = (int)(kScaleRate * 0.22f);
+    int       total    = perNote * (int)t.n;
+    if (total > kBufSamples) total = kBufSamples;
+    if (total <= 0) return;
+
+    const float invRate = 1.0f / (float)kScaleRate;
+    int         idx     = 0;
+
+    for (int n = 0; n < t.n && idx < total; ++n) {
+        const float f   = noteFreq(baseMidi + t.semis[n]);
+        const int   len = perNote;
+        float       ph  = 0.0f;
+
+        for (int i = 0; i < len && idx < total; ++i, ++idx) {
+            const float tt  = i * invRate;
+            const float rel = (len - i) * invRate;
+
+            float env = tt < 0.010f ? tt / 0.010f : 1.0f;
+            if (rel < 0.05f) env *= rel / 0.05f;
+            if (env < 0) env = 0;
+
+            ph += 6.2831853f * f * invRate;
+            if (ph > 6.2831853f) ph -= 6.2831853f;
+
+            const float s   = sinf(ph) + 0.25f * sinf(2.0f * ph);
+            float       val = s * env * 9000.0f;
+            if (val > 32000.0f) val = 32000.0f;
+            if (val < -32000.0f) val = -32000.0f;
+            gBuf[idx] = (int16_t)val;
+        }
+    }
+
+    M5.Speaker.playRaw(gBuf, total, kScaleRate, false, 0, -1, true);
+}

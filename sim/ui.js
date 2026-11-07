@@ -128,7 +128,7 @@ const UI = (() => {
 
   // ---------------------------------------------------------------- page 0
 
-  const CX = 68, CY = 62, R_OUT = 58, R_MAJ_IN = 41, R_MIN_IN = 26, R_HUB = 25, PANEL_X = 132;
+  const CX = 68, CY = 68, R_OUT = 53, R_MAJ_IN = 38, R_MIN_IN = 24, R_HUB = 22, PANEL_X = 132;
 
   const drawWheel = (st) => {
     const d = C.ctx;
@@ -143,10 +143,10 @@ const UI = (() => {
 
       const am = ((a0 + a1) / 2) * RAD;
       const maj = MT.noteName(MT.majorTonic(i));
-      textMid(CX + 49.5 * Math.cos(am), CY + 49.5 * Math.sin(am), maj, F_TINY, sel ? '#fff' : COL.ink);
+      textMid(CX + 45.5 * Math.cos(am), CY + 45.5 * Math.sin(am), maj, F_TINY, sel ? '#fff' : COL.ink);
 
       const min = MT.noteName(MT.relativeMinorOf(MT.majorTonic(i))).toLowerCase();
-      textMid(CX + 33.5 * Math.cos(am), CY + 33.5 * Math.sin(am), min, F_TINY, sel ? '#fff' : COL.minorLabel);
+      textMid(CX + 31 * Math.cos(am), CY + 31 * Math.sin(am), min, F_TINY, sel ? '#fff' : COL.minorLabel);
     }
 
     d.fillStyle = COL.hub;
@@ -157,10 +157,10 @@ const UI = (() => {
     let tonic = MT.majorTonic(st.slot);
     if (st.minorView) tonic = MT.relativeMinorOf(tonic);
     let name = MT.noteName(tonic) + (st.minorView ? 'm' : '');
-    textMid(CX, CY - 5, name, F_BIG, COL.fg);
+    textMid(CX, CY - 4, name, F_BIG, COL.fg);
 
     const sig = MT.signature(st.slot);
-    textMid(CX, CY + 13, sig > 0 ? `${sig}#` : sig < 0 ? `${-sig}b` : '0', F_TINY, COL.dim);
+    textMid(CX, CY + 11, sig > 0 ? `${sig}#` : sig < 0 ? `${-sig}b` : '0', F_TINY, COL.dim);
   };
 
   const drawPanel = (st) => {
@@ -171,18 +171,11 @@ const UI = (() => {
     const chords = MT.diatonicChords(tonic, st.minorView);
 
     const header = `${MT.noteName(tonic)}${st.minorView ? 'm' : ''} ${st.minorView ? 'MINOR' : 'MAJOR'}`;
-    textTL(PANEL_X + 2, 3, header, F_MID, COL.fg);
+    textTL(PANEL_X + 2, 13, header, F_MID, COL.fg);
 
-    const sig = MT.signature(st.slot);
-    const sbuf = sig > 0 ? `${sig}#` : sig < 0 ? `${-sig}b` : '0';
-    let scaleTxt = `${sbuf} ` + sc.map(MT.noteName).join(' ');
-    const maxW = W - (PANEL_X + 2) - 6;
-    if (measure(scaleTxt, F_TINY) > maxW) scaleTxt = `${sbuf} ` + sc.map(MT.noteName).join('');
-    if (measure(scaleTxt, F_TINY) > maxW) scaleTxt = sbuf;
-    textTL(PANEL_X + 2, 19, scaleTxt, F_TINY, COL.dim);
-
+    // the tab bar costs 12 px, so the scale line lives on the scale page now
     for (let i = 0; i < 7; i++) {
-      const y = 31 + i * 13;
+      const y = 32 + i * 13;
       const sel = i === st.selDegree;
       if (sel) {
         d.fillStyle = COL.selBg;
@@ -200,10 +193,10 @@ const UI = (() => {
         d.stroke();
       }
 
-      textML(PANEL_X + 23, y + 6, MT.chordName(chords[i]), F_CHORD, sel ? COL.fg : COL.panelChord);
+      textML(PANEL_X + 25, y + 6, MT.chordName(chords[i]), F_CHORD, sel ? COL.fg : COL.panelChord);
 
       const notes = [0, 1, 2].map((k) => MT.noteName(sc[(i + k * 2) % 7])).join(' ');
-      textTL(PANEL_X + 56, y + 1, notes, F_TINY, COL.chordDim);
+      textTL(PANEL_X + 58, y + 1, notes, F_TINY, COL.chordDim);
     }
 
     d.strokeStyle = COL.line;
@@ -219,35 +212,35 @@ const UI = (() => {
   const drawChordPage = (st) => {
     const d = C.ctx;
     if (!st.chordValid) {
-      textTL(6, 4, '?', F_BIG, COL.dim);
-      textTL(6, 40, 'unknown chord', F_TINY, COL.dim);
-      textTL(6, 52, 'keep typing', F_TINY, COL.dim);
-      textTL(6, 88, 'ENTER: play', F_TINY, COL.footer);
+      textTL(6, 16, '?', F_BIG, COL.dim);
+      textTL(6, 52, 'unknown chord', F_TINY, COL.dim);
+      textTL(6, 64, 'keep typing', F_TINY, COL.dim);
+      textTL(6, 100, 'ENTER: play', F_TINY, COL.footer);
       return;
     }
 
     const t = MT.CHORD_TYPES[st.chordType];
     const big = measure(st.chordText, F_BIG) <= 104;
-    textTL(6, 3, st.chordText, big ? F_BIG : F_MID, COL.fg);
-    textTL(6, big ? 36 : 26, t.label, F_TINY, COL.dim);
+    textTL(6, 13, st.chordText, big ? F_BIG : F_MID, COL.fg);
+    textTL(6, big ? 46 : 38, t.label, F_TINY, COL.dim);
 
     const notes = MT.spellChord(st.chordRoot, st.chordType).map(MT.noteName);
-    textTL(6, 48, notes.join('  '), F_TINY, COL.fg);
-    textTL(6, 58, t.semis.map(MT.intervalName).join('  '), F_TINY, COL.dim);
+    textTL(6, 58, notes.join('  '), F_TINY, COL.fg);
+    textTL(6, 68, t.semis.map(MT.intervalName).join('  '), F_TINY, COL.dim);
 
     const target = MT.dominantTarget(st.chordRoot, st.chordType);
-    if (target) textTL(6, 72, `V7 of ${MT.noteName(target)}`, F_TINY, COL.accent);
+    if (target) textTL(6, 82, `V7 of ${MT.noteName(target)}`, F_TINY, COL.accent);
 
-    textTL(6, 88, 'ENTER: play', F_TINY, COL.footer);
-    textTL(6, 99, 'BACKSPACE: edit', F_TINY, '#545e6c');
+    textTL(6, 100, 'ENTER: play', F_TINY, COL.footer);
+    textTL(6, 110, 'BACKSPACE: edit', F_TINY, '#545e6c');
 
     d.strokeStyle = COL.line;
     d.beginPath();
-    d.moveTo(120, 3);
-    d.lineTo(120, 121);
+    d.moveTo(120, 14);
+    d.lineTo(120, 122);
     d.stroke();
 
-    textTL(124, 3, 'IN KEYS', F_TINY, COL.dim);
+    textTL(124, 14, 'IN KEYS', F_TINY, COL.dim);
 
     const hits = MT.findChordInKeys(st.chordRoot, st.chordType);
     if (!hits.length) {
@@ -258,7 +251,7 @@ const UI = (() => {
 
     const shown = Math.min(hits.length, 7);
     for (let i = 0; i < shown; i++) {
-      const y = 16 + i * 13;
+      const y = 26 + i * 13;
       let tonic = MT.majorTonic(hits[i].slot);
       if (hits[i].minor) tonic = MT.relativeMinorOf(tonic);
       textTL(124, y, MT.noteName(tonic), F_TINY, COL.fg);
@@ -284,7 +277,7 @@ const UI = (() => {
 
   const drawChordBox = (x, y, frets) => {
     const d = C.ctx;
-    const dx = 10, dy = 13, n = 5;
+    const dx = 10, dy = 12, n = 5;
     let mn = 99, firstSounding = -1;
     for (let i = 0; i < 6; i++) {
       if (frets[i] >= 0 && firstSounding < 0) firstSounding = i;
@@ -360,8 +353,8 @@ const UI = (() => {
 
   const drawGuitarPage = (st) => {
     if (!st.chordValid) {
-      textTL(6, 4, '?', F_BIG, COL.dim);
-      textTL(6, 40, 'unknown chord', F_TINY, COL.dim);
+      textTL(6, 16, '?', F_BIG, COL.dim);
+      textTL(6, 52, 'unknown chord', F_TINY, COL.dim);
       return;
     }
     const t = MT.CHORD_TYPES[st.chordType];
@@ -373,9 +366,9 @@ const UI = (() => {
     }
     const shapes = shapeCache.list;
 
-    textTL(6, 2, st.chordText, F_MID, COL.fg);
+    textTL(6, 13, st.chordText, F_MID, COL.fg);
     const sw = measure(st.chordText, F_MID);
-    textTL(6 + sw + 6, 7, t.label, F_TINY, COL.dim);
+    textTL(6 + sw + 6, 18, t.label, F_TINY, COL.dim);
 
     const perPage = 3;
     const pages = Math.ceil(shapes.length / perPage) || 1;
@@ -384,12 +377,12 @@ const UI = (() => {
       const from = page * perPage + 1;
       const to = Math.min(page * perPage + perPage, shapes.length);
       const vb = `${from}-${to}/${shapes.length}`;
-      textTL(W - 5 - measure(vb, F_TINY), 6, vb, F_TINY, COL.dim);
+      textTL(W - 5 - measure(vb, F_TINY), 17, vb, F_TINY, COL.dim);
     }
 
     if (!shapes.length) {
-      textTL(30, 50, 'no playable shape', F_TINY, COL.dim);
-      textTL(30, 62, 'for this chord', F_TINY, COL.dim);
+      textTL(30, 56, 'no playable shape', F_TINY, COL.dim);
+      textTL(30, 68, 'for this chord', F_TINY, COL.dim);
       return;
     }
 
@@ -397,11 +390,11 @@ const UI = (() => {
     for (let k = 0; k < perPage; k++) {
       const i = page * perPage + k;
       if (i >= shapes.length) break;
-      drawChordBox(xs[k], 30, shapes[i]);
+      drawChordBox(xs[k], 38, shapes[i]);
     }
 
     const notes = MT.spellChord(st.chordRoot, st.chordType).map(MT.noteName).join('  ');
-    textMid(W / 2, 108, notes, F_TINY, COL.dim);
+    textMid(W / 2, 110, notes, F_TINY, COL.dim);
   };
 
   // ---------------------------------------------------------------- page 3
@@ -410,15 +403,15 @@ const UI = (() => {
     const t = MT.SCALE_TYPES[st.scaleType];
     const notes = MT.spellScale(st.scaleRoot, st.scaleType);
 
-    textTL(6, 2, `${MT.noteName(st.scaleRoot)} ${t.name}`, F_MID, COL.fg);
+    textTL(6, 13, `${MT.noteName(st.scaleRoot)} ${t.name}`, F_MID, COL.fg);
     const idx = `${st.scaleType + 1}/${MT.SCALE_TYPES.length}`;
-    textTL(W - 5 - measure(idx, F_TINY), 7, idx, F_TINY, COL.dim);
+    textTL(W - 5 - measure(idx, F_TINY), 17, idx, F_TINY, COL.dim);
 
     const colW = 220 / t.n;
     for (let i = 0; i < t.n; i++) {
       const cx = 10 + colW * i + colW / 2;
-      textMid(cx, 33, MT.noteName(notes[i]), F_MID, COL.fg);
-      textMid(cx, 46, MT.degreeLabel(notes[i], t.degrees[i]), F_TINY, COL.dim);
+      textMid(cx, 44, MT.noteName(notes[i]), F_MID, COL.fg);
+      textMid(cx, 56, MT.degreeLabel(notes[i], t.degrees[i]), F_TINY, COL.dim);
     }
 
     let flats = 0, sharps = 0;
@@ -437,35 +430,58 @@ const UI = (() => {
       if (deg >= 0) {
         d.fillStyle = '#324058';
         d.beginPath();
-        d.roundRect(x, 56, 16, 26, 2);
+        d.roundRect(x, 62, 16, 26, 2);
         d.fill();
       } else {
         d.strokeStyle = '#2c333e';
         d.lineWidth = 1;
         d.beginPath();
-        d.roundRect(x, 56, 16, 26, 2);
+        d.roundRect(x, 62, 16, 26, 2);
         d.stroke();
       }
 
-      textMid(x + 8, 64, MT.noteName(MT.pcToNote(pc, prefFlat)), F_TINY, deg >= 0 ? COL.fg : '#58626f');
-      if (deg >= 0) textMid(x + 8, 75, MT.degreeLabel(notes[deg], t.degrees[deg]), '7px Consolas, monospace', COL.accent);
+      const label = deg >= 0 ? MT.noteName(notes[deg]) : MT.noteName(MT.pcToNote(pc, prefFlat));
+      textMid(x + 8, 70, label, F_TINY, deg >= 0 ? COL.fg : '#58626f');
+      if (deg >= 0) textMid(x + 8, 81, MT.degreeLabel(notes[deg], t.degrees[deg]), '7px Consolas, monospace', COL.accent);
     }
 
     const steps = [];
     for (let i = 0; i < t.n; i++) {
       steps.push(i + 1 < t.n ? t.semis[i + 1] - t.semis[i] : 12 - t.semis[i]);
     }
-    textMid(W / 2, 94, steps.join(' '), F_TINY, COL.dim);
+    textMid(W / 2, 96, steps.join(' '), F_TINY, COL.dim);
   };
 
   // ----------------------------------------------------------------
+
+  const drawTabs = (st) => {
+    const names = ['CIRCLE', 'CHORD', 'GUITAR', 'SCALE'];
+    const d = C.ctx;
+    for (let i = 0; i < 4; i++) {
+      const x = 4 + i * 58;
+      const on = i === st.page;
+      if (on) {
+        d.fillStyle = COL.selBg;
+        d.beginPath();
+        d.roundRect(x, 2, 56, 9, 2);
+        d.fill();
+      }
+      const w = measure(names[i], F_TINY);
+      textTL(x + (56 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#58626f');
+    }
+    d.strokeStyle = COL.line;
+    d.beginPath();
+    d.moveTo(0, 12);
+    d.lineTo(W, 12);
+    d.stroke();
+  };
 
   const drawFooter = (st) => {
     const hints = [
       'TAB chord  Fn+<> key  ^v  ENTER',
       'TAB guitar  Fn+<> root  ^v type',
       'TAB scale  Fn+<> voice  ^v type',
-      'TAB circle  Fn+<> root  ^v type',
+      'TAB circle  Fn+<> root ^v ENTER',
     ];
     const d = C.ctx;
     d.strokeStyle = COL.line;
@@ -488,6 +504,7 @@ const UI = (() => {
     d.fillStyle = COL.bg;
     d.fillRect(0, 0, W, H);
 
+    drawTabs(st);
     if (st.page === 0) {
       drawWheel(st);
       drawPanel(st);
@@ -502,6 +519,10 @@ const UI = (() => {
 })();
 
 if (typeof module !== 'undefined') module.exports = UI;
+
+
+
+
 
 
 

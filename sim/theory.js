@@ -43,11 +43,16 @@ const MT = (() => {
     { name: 'LOCRIAN', n: 7, semis: [0, 1, 3, 5, 6, 8, 10], degrees: [0, 1, 2, 3, 4, 5, 6] },
     { name: 'HARM MIN', n: 7, semis: [0, 2, 3, 5, 7, 8, 11], degrees: [0, 1, 2, 3, 4, 5, 6] },
     { name: 'MELOD MIN', n: 7, semis: [0, 2, 3, 5, 7, 9, 11], degrees: [0, 1, 2, 3, 4, 5, 6] },
+    { name: 'LYDIAN DOM', n: 7, semis: [0, 2, 4, 6, 7, 9, 10], degrees: [0, 1, 2, 3, 4, 5, 6] },
+    { name: 'PHRYG DOM', n: 7, semis: [0, 1, 4, 5, 7, 8, 10], degrees: [0, 1, 2, 3, 4, 5, 6] },
+    { name: 'HUNGARIAN', n: 7, semis: [0, 2, 3, 6, 7, 8, 11], degrees: [0, 1, 2, 3, 4, 5, 6] },
     { name: 'PENTATONIC', n: 5, semis: [0, 2, 4, 7, 9], degrees: [0, 1, 2, 4, 5] },
     { name: 'MIN PENTA', n: 5, semis: [0, 3, 5, 7, 10], degrees: [0, 2, 3, 4, 6] },
     { name: 'BLUES', n: 6, semis: [0, 3, 5, 6, 7, 10], degrees: [0, 2, 3, 3, 4, 6] },
+    { name: 'BEBOP DOM', n: 8, semis: [0, 2, 4, 5, 7, 9, 10, 11], degrees: [0, 1, 2, 3, 4, 5, 6, 6] },
     { name: 'WHOLE TONE', n: 6, semis: [0, 2, 4, 6, 8, 10], degrees: [0, 1, 2, 3, 4, 5] },
     { name: 'DIMINISHED', n: 8, semis: [0, 2, 3, 5, 6, 8, 9, 11], degrees: [0, 1, 2, 3, 4, 5, 5, 6] },
+    { name: 'HALF-WHOLE', n: 8, semis: [0, 1, 3, 4, 6, 7, 9, 10], degrees: [0, 1, 2, 2, 3, 4, 5, 6] },
   ];
 
   const note = (letter, acc) => ({ letter: imod(letter, 7), acc: acc | 0 });
@@ -211,3 +216,4 @@ const MT = (() => {
 })();
 
 if (typeof module !== 'undefined') module.exports = MT;
+

@@ -95,6 +95,44 @@ const App = (() => {
     }, 900);
   };
 
+  // ascending run, one note every 220 ms, the same as the firmware
+  const playScale = (rootPc, typeIdx) => {
+    stopAudio();
+    const ctx = ensureAudio();
+    const t = MT.SCALE_TYPES[typeIdx];
+
+    const master = ctx.createGain();
+    master.gain.value = 0.22;
+    master.connect(ctx.destination);
+    audio.master = master;
+
+    const now = ctx.currentTime + 0.02;
+    const per = 0.22;
+    for (let i = 0; i < t.n; i++) {
+      const midi = 60 + rootPc + t.semis[i];
+      const t0 = now + i * per;
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.9 / t.n, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + per * 0.95);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(t0);
+      osc.stop(t0 + per);
+      audio.nodes.push(osc);
+    }
+
+    st.playing = true;
+    audio.timer = setTimeout(() => {
+      st.playing = false;
+      audio.nodes = [];
+      refresh();
+    }, (t.n * per + 0.15) * 1000);
+  };
+
   // ---------------------------------------------------------------- helpers
 
   const rebuildText = () => {
@@ -213,6 +251,8 @@ const App = (() => {
       playChord(MT.pitchClass(c.root), c.type);
     } else if (st.page <= 2 && st.chordValid) {
       playChord(MT.pitchClass(st.chordRoot), st.chordType);
+    } else if (st.page === 3) {
+      playScale(MT.pitchClass(st.scaleRoot), st.scaleType);
     }
   };
 
@@ -340,4 +380,5 @@ const App = (() => {
 
   return { init, refresh, state: st };
 })();
+
 
