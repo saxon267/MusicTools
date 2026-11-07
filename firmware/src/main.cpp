@@ -437,7 +437,15 @@ void loop()
     const bool fireSpace = stepKey(ks.space, kSpace);
     if (fireEnter || fireSpace) {
         gDirty = true;
-        if (audioBusy()) {
+        if (g.page == 4) {
+            // metronome: this key only starts and stops the click
+            audioStop();
+            g.metroOn   = !g.metroOn;
+            g.beat      = -1;
+            gNextBeatUs = micros();
+        } else if (g.page == 5) {
+            audioStop();  // the tuner has nothing to play
+        } else if (audioBusy()) {
             audioStop();  // second press stops whatever is sounding
         } else if (g.page == 0) {
             playSelection();

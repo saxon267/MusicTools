@@ -10,8 +10,10 @@ struct TunerReading {
     float freq;   // Hz
     int   note;   // MIDI note number
     float cents;  // -50..+50
+    int   level;  // 0..100 input level, shown as a meter
 };
 
 void tunerInit();
 void tunerPoll();  // call frequently; captures and analyses asynchronously
 const TunerReading& tunerLast();
+

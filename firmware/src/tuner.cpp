@@ -13,7 +13,7 @@ constexpr int      kMaxLag  = 300;    // ~53 Hz
 int16_t      gSamples[kWindow];
 float        gCorr[kMaxLag + 2];
 bool         gCaptured = false;
-TunerReading gReading  = {false, false, 0.0f, 0, 0.0f};
+TunerReading gReading  = {false, false, 0.0f, 0, 0.0f, 0};
 
 float detectPitch(const int16_t* x, int n, int rate)
 {
@@ -26,7 +26,15 @@ float detectPitch(const int16_t* x, int n, int rate)
         const int v = x[i] - mean;
         energy += v * v;
     }
-    if (energy < (int32_t)n * 400) return 0.0f;  // basically silence
+
+    // level meter: log-ish so quiet signals still move the bar
+    const float rms = sqrtf((float)energy / (float)n);
+    int         lvl = (int)(log10f(rms + 1.0f) * 42.0f);
+    if (lvl > 100) lvl = 100;
+    if (lvl < 0) lvl = 0;
+    gReading.level = lvl;
+
+    if (energy < (int32_t)n * 24) return 0.0f;  // basically silence
 
     float best = 0.0f;
     for (int lag = kMinLag; lag <= kMaxLag; ++lag) {
@@ -42,7 +50,7 @@ float detectPitch(const int16_t* x, int n, int rate)
 
     // take the first peak that is close to the strongest one, so a strong
     // second harmonic does not drag us an octave up
-    const float threshold = best * 0.87f;
+    const float threshold = best * 0.82f;
     int         peakLag   = 0;
     for (int lag = kMinLag + 1; lag < kMaxLag; ++lag) {
         if (gCorr[lag] < threshold) continue;
@@ -87,9 +95,14 @@ void analyse()
 void tunerInit()
 {
     gReading.mic = M5.Mic.isEnabled();
-    if (gReading.mic) {
-        M5.Mic.begin();
-    }
+    if (!gReading.mic) return;
+
+    // the default magnification (16) leaves a quiet instrument almost silent
+    auto cfg = M5.Mic.config();
+    cfg.magnification     = 128;
+    cfg.noise_filter_level = 0;
+    M5.Mic.config(cfg);
+    M5.Mic.begin();
 }
 
 void tunerPoll()
@@ -113,3 +126,4 @@ const TunerReading& tunerLast()
 {
     return gReading;
 }
+

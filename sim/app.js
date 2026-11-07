@@ -20,7 +20,7 @@ const App = (() => {
     metroPattern: 0,
     metroOn: false,
     beat: -1,
-    tuner: { mic: false, valid: false, freq: 0, note: 0, cents: 0 },
+    tuner: { mic: false, valid: false, freq: 0, note: 0, cents: 0, level: 0 },
     volume: 100,
     showVolume: false,
     playing: false,
@@ -99,7 +99,10 @@ const App = (() => {
 
     let energy = 0;
     for (let i = 0; i < n; i++) energy += x[i] * x[i];
-    if (energy < 1e-5) {
+    const rms = Math.sqrt(energy / n);
+    st.tuner.level = Math.max(0, Math.min(100, Math.round(Math.log10(rms + 1) * 42)));
+
+    if (energy < 1e-6) {
       st.tuner.valid = false;
       return;
     }
@@ -554,6 +557,9 @@ const App = (() => {
     if (h.has('page')) st.page = Math.max(0, Math.min(5, Number(h.get('page')) || 0));
     if (h.has('bpm')) st.bpm = Math.max(40, Math.min(240, Number(h.get('bpm')) || 100));
     if (h.has('key')) st.slot = MT.imod(Number(h.get('key')) || 0, 12);
+    if (h.has('tuner')) {
+      st.tuner = { mic: true, valid: true, freq: 440.0, note: 69, cents: 7, level: 62 };
+    }
     if (h.has('vol')) {
       st.volume = Math.max(0, Math.min(100, Number(h.get('vol')) || 0));
       st.showVolume = true;
@@ -611,6 +617,7 @@ const App = (() => {
 
   return { init, refresh, state: st };
 })();
+
 
 
 

@@ -578,6 +578,16 @@ const UI = (() => {
     const status = !r.valid ? '' : Math.abs(r.cents) < 5 ? 'IN TUNE' : r.cents < 0 ? 'TUNE UP' : 'TUNE DOWN';
     const sw = measure(status, F_TINY);
     textTL(cx - sw / 2, 86, status, F_TINY, Math.abs(r.cents) < 5 ? '#78c88c' : COL.dim);
+
+    // input level, so a silent or too-quiet signal is obvious
+    d.strokeStyle = '#282e3a';
+    d.lineWidth = 1;
+    d.strokeRect(12, 102, 216, 7);
+    const lw = Math.round((214 * (r.level || 0)) / 100);
+    if (lw > 0) {
+      d.fillStyle = r.valid ? '#78c88c' : '#687a94';
+      d.fillRect(13, 103, lw, 5);
+    }
   };
 
   const drawVolumeBar = (st) => {
@@ -701,6 +711,7 @@ const UI = (() => {
 })();
 
 if (typeof module !== 'undefined') module.exports = UI;
+
 
 
 

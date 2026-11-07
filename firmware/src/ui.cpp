@@ -676,6 +676,13 @@ void drawTunerPage(LovyanGFX* d, const UiState& st)
     d->setFont(&fonts::Font0);
     textTL(d, cx - d->textWidth(status) / 2, 86, status, &fonts::Font0,
            fabsf(r.cents) < 5.0f ? rgb(120, 200, 140) : kDim);
+
+    // input level, so a silent or too-quiet signal is obvious
+    d->drawRect(12, 102, 216, 7, rgb(40, 46, 58));
+    const int lw = (214 * r.level) / 100;
+    if (lw > 0) {
+        d->fillRect(13, 103, lw, 5, r.valid ? rgb(120, 200, 140) : rgb(104, 122, 148));
+    }
 }
 
 // ---------------------------------------------------------------------------// Transient bar shown for a moment after the volume keys are used.
@@ -813,6 +820,7 @@ void uiRender(const UiState& st)
         gCanvas->pushSprite(0, 0);
     }
 }
+
 
 
 
