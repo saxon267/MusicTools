@@ -295,4 +295,44 @@ const char* intervalName(int semis)
     return kNames[imod(semis, 12)];
 }
 
+
+// ---------------------------------------------------------------------------
+// Scale dictionary
+// ---------------------------------------------------------------------------
+
+const ScaleType kScaleTypes[] = {
+    {"MAJOR", 7, {0, 2, 4, 5, 7, 9, 11}, {0, 1, 2, 3, 4, 5, 6}},
+    {"DORIAN", 7, {0, 2, 3, 5, 7, 9, 10}, {0, 1, 2, 3, 4, 5, 6}},
+    {"PHRYGIAN", 7, {0, 1, 3, 5, 7, 8, 10}, {0, 1, 2, 3, 4, 5, 6}},
+    {"LYDIAN", 7, {0, 2, 4, 6, 7, 9, 11}, {0, 1, 2, 3, 4, 5, 6}},
+    {"MIXOLYDIAN", 7, {0, 2, 4, 5, 7, 9, 10}, {0, 1, 2, 3, 4, 5, 6}},
+    {"AEOLIAN", 7, {0, 2, 3, 5, 7, 8, 10}, {0, 1, 2, 3, 4, 5, 6}},
+    {"LOCRIAN", 7, {0, 1, 3, 5, 6, 8, 10}, {0, 1, 2, 3, 4, 5, 6}},
+    {"HARM MIN", 7, {0, 2, 3, 5, 7, 8, 11}, {0, 1, 2, 3, 4, 5, 6}},
+    {"MELOD MIN", 7, {0, 2, 3, 5, 7, 9, 11}, {0, 1, 2, 3, 4, 5, 6}},
+    {"PENTATONIC", 5, {0, 2, 4, 7, 9}, {0, 1, 2, 4, 5}},
+    {"MIN PENTA", 5, {0, 3, 5, 7, 10}, {0, 2, 3, 4, 6}},
+    {"BLUES", 6, {0, 3, 5, 6, 7, 10}, {0, 2, 3, 3, 4, 6}},
+    {"WHOLE TONE", 6, {0, 2, 4, 6, 8, 10}, {0, 1, 2, 3, 4, 5}},
+    {"DIMINISHED", 8, {0, 2, 3, 5, 6, 8, 9, 11}, {0, 1, 2, 3, 4, 5, 5, 6}},
+};
+
+const int kScaleTypeCount = (int)(sizeof(kScaleTypes) / sizeof(kScaleTypes[0]));
+
+void spellScale(Note root, int typeIdx, Note out[8])
+{
+    const ScaleType& t    = kScaleTypes[typeIdx];
+    const int        base = pitchClass(root);
+    for (int i = 0; i < t.n; ++i) {
+        int letter = imod(root.letter + t.degrees[i], 7);
+        int target = imod(base + t.semis[i], 12);
+        int diff   = target - letterNaturalPc(letter);
+        while (diff > 6) diff -= 12;
+        while (diff < -6) diff += 12;
+        out[i].letter = (int8_t)letter;
+        out[i].acc    = (int8_t)diff;
+    }
+}
+
 }  // namespace mt
+

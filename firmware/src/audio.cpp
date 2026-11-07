@@ -21,7 +21,7 @@ float noteFreq(int midi)
 void audioInit()
 {
     if (!M5.Speaker.isEnabled()) return;
-    M5.Speaker.setVolume(110);
+    M5.Speaker.setVolume(255);  // the 1 W speaker needs everything it can get
 }
 
 bool audioBusy()
@@ -52,6 +52,12 @@ void audioPlayChord(mt::Note root, int typeIdx)
     amp[nv]  = 0.35f;
     ++nv;
 
+    // normalise the mix so the chord peaks near full scale; the old fixed gain
+    // left it at about half of what the speaker can take
+    float ampSum = 0.0f;
+    for (int v = 0; v < nv; ++v) ampSum += amp[v];
+    const float gain = 30000.0f / (ampSum * 1.42f);  // 1.42 = peak of the harmonic mix
+
     const float invRate = 1.0f / (float)kRate;
     const float dur     = kSamples * invRate;
     float       ph[kMaxVoices];
@@ -81,7 +87,7 @@ void audioPlayChord(mt::Note root, int typeIdx)
             s += amp[v] * (sinf(ph[v]) + 0.30f * sinf(2.0f * ph[v]) + 0.12f * sinf(3.0f * ph[v]));
         }
 
-        float val = s * env * 3200.0f;
+        float val = s * env * gain;
         if (val > 32000.0f) val = 32000.0f;
         if (val < -32000.0f) val = -32000.0f;
         gBuf[i] = (int16_t)val;
@@ -89,3 +95,9 @@ void audioPlayChord(mt::Note root, int typeIdx)
 
     M5.Speaker.playRaw(gBuf, kSamples, kRate, false, 0, -1, true);
 }
+
+void audioStop()
+{
+    if (M5.Speaker.isEnabled()) M5.Speaker.stop();
+}
+

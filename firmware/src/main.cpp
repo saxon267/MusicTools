@@ -207,6 +207,32 @@ void playQuery()
     if (g.chordValid) audioPlayChord(g.chordRoot, g.chordType);
 }
 
+void transposeScaleRoot(int delta)
+{
+    const int pc = mt::imod(mt::pitchClass(g.scaleRoot) + delta, 12);
+    g.scaleRoot  = mt::pcToNote(pc, delta < 0);
+}
+
+void cycleScaleType(int delta)
+{
+    g.scaleType = mt::imod(g.scaleType + delta, mt::kScaleTypeCount);
+}
+
+void editScaleRoot(char c)
+{
+    char up = c;
+    if (up >= 'a' && up <= 'g') up = (char)(up - 'a' + 'A');
+    if (up >= 'A' && up <= 'G') {
+        static const char kLetters[] = "CDEFGAB";
+        g.scaleRoot.letter = (int8_t)(strchr(kLetters, up) - kLetters);
+        g.scaleRoot.acc    = 0;
+    } else if (c == '#') {
+        g.scaleRoot.acc = 1;
+    } else if (c == '-') {
+        g.scaleRoot.acc = -1;
+    }
+}
+
 void handleChar(char c)
 {
     if (g.page == 0) {
@@ -219,6 +245,8 @@ void handleChar(char c)
         } else if (c == ']') {
             moveSlot(1);
         }
+    } else if (g.page == 3) {
+        editScaleRoot(c);
     } else {
         editChord(c);
     }
@@ -279,6 +307,8 @@ void setup()
     g.battery    = M5.Power.getBatteryLevel();
     g.audioBusy  = false;
     g.chordType  = 0;
+    g.scaleRoot  = mt::majorTonic(0);
+    g.scaleType  = 0;
     g.chordRoot  = mt::majorTonic(0);
     g.chordValid = true;
     g.gtrPage    = 0;
@@ -316,7 +346,7 @@ void loop()
     if (fireTab || fireLeft || fireRight || fireUp || fireDown || fireDel) gDirty = true;
 
     if (fireTab) {
-        g.page = (g.page + 1) % 3;
+        g.page = (g.page + 1) % 4;
         if (g.page == 1) seedChordFromSelection();
     }
 
@@ -331,12 +361,17 @@ void loop()
         if (fireUp) cycleType(-1);
         if (fireDown) cycleType(1);
         if (fireDel) deleteLastChar();
-    } else {
+    } else if (g.page == 2) {
         if (fireLeft) g.gtrPage = (g.gtrPage + 2) % 3;
         if (fireRight) g.gtrPage = (g.gtrPage + 1) % 3;
         if (fireUp) cycleType(-1);
         if (fireDown) cycleType(1);
         if (fireDel) deleteLastChar();
+    } else {
+        if (fireLeft) transposeScaleRoot(-1);
+        if (fireRight) transposeScaleRoot(1);
+        if (fireUp) cycleScaleType(-1);
+        if (fireDown) cycleScaleType(1);
     }
 
     if (!ks.fn && pollTypedKeys()) gDirty = true;
@@ -345,9 +380,11 @@ void loop()
     const bool fireSpace = stepKey(ks.space, kSpace);
     if (fireEnter || fireSpace) {
         gDirty = true;
-        if (g.page == 0) {
+        if (audioBusy()) {
+            audioStop();  // second press stops whatever is sounding
+        } else if (g.page == 0) {
             playSelection();
-        } else {
+        } else if (g.page <= 2) {
             playQuery();
         }
     }
@@ -388,6 +425,8 @@ void loop()
 
     delay(5);
 }
+
+
 
 
 

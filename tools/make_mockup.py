@@ -245,6 +245,41 @@ def render_guitar_page() -> Image.Image:
     d.text((5 * SS, 126 * SS), "TAB circle  Fn+<> voice  ^v type", font=font(8), fill=(104, 116, 132))
     d.text(((W - 27) * SS, 126 * SS), "72%", font=font(8), fill=(104, 116, 132))
     return img.resize((W, H), Image.LANCZOS)
+def render_scale_page() -> Image.Image:
+    """Mirrors drawScalePage() in firmware/src/ui.cpp (D dorian as the sample)."""
+    img = Image.new("RGB", (W * SS, H * SS), BG)
+    d = ImageDraw.Draw(img)
+
+    d.text((6 * SS, 2 * SS), "D DORIAN", font=font(15, True), fill=FG)
+    d.text((212 * SS, 7 * SS), "2/14", font=font(8), fill=DIM)
+
+    notes = ["D", "E", "F", "G", "A", "B", "C"]
+    degs = ["1", "2", "b3", "4", "5", "6", "b7"]
+    colw = 220 / 7
+    for i, (n, g) in enumerate(zip(notes, degs)):
+        cx = (10 + colw * i + colw / 2) * SS
+        ctext(d, (cx, 33 * SS), n, font(13, True), FG)
+        ctext(d, (cx, 46 * SS), g, font(8), DIM)
+
+    inside = {2, 4, 5, 7, 9, 11, 0}   # D E F G A B C
+    names = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+    for pc in range(12):
+        x = (10 + pc * 18) * SS
+        if pc in inside:
+            d.rounded_rectangle([x, 56 * SS, x + 16 * SS, 82 * SS], radius=2 * SS, fill=(50, 64, 88))
+        else:
+            d.rounded_rectangle([x, 56 * SS, x + 16 * SS, 82 * SS], radius=2 * SS, outline=(44, 51, 62), width=1 * SS)
+        col = FG if pc in inside else (88, 98, 112)
+        ctext(d, (x + 8 * SS, 64 * SS), names[pc], font(8), col)
+        if pc in inside:
+            ctext(d, (x + 8 * SS, 75 * SS), degs[notes.index(names[pc])] if names[pc] in notes else "", font(7), (150, 178, 208))
+
+    ctext(d, (120 * SS, 94 * SS), "2 1 2 2 1 2 2", font(8), DIM)
+
+    d.line([(4 * SS, 124 * SS), ((W - 4) * SS, 124 * SS)], fill=LINE, width=1 * SS)
+    d.text((5 * SS, 126 * SS), "TAB circle  Fn+<> root  ^v type", font=font(8), fill=(104, 116, 132))
+    d.text(((W - 27) * SS, 126 * SS), "72%", font=font(8), fill=(104, 116, 132))
+    return img.resize((W, H), Image.LANCZOS)
 def upscale(img: Image.Image, k: int) -> Image.Image:
     return img.resize((W * k, H * k), Image.NEAREST)
 
@@ -273,11 +308,16 @@ def main() -> None:
     g = render_guitar_page()
     g.save(os.path.join(OUT_DIR, "ui-mockup-guitar-1x.png"))
     upscale(g, 4).save(os.path.join(OUT_DIR, "ui-mockup-guitar.png"))
+
+    sp = render_scale_page()
+    sp.save(os.path.join(OUT_DIR, "ui-mockup-scale-1x.png"))
+    upscale(sp, 4).save(os.path.join(OUT_DIR, "ui-mockup-scale.png"))
     print("wrote", OUT_DIR)
 
 
 if __name__ == "__main__":
     main()
+
 
 
 

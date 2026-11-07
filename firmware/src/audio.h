@@ -4,4 +4,5 @@
 
 void audioInit();
 void audioPlayChord(mt::Note root, int typeIdx);
+void audioStop();
 bool audioBusy();

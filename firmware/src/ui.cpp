@@ -516,17 +516,107 @@ void drawGuitarPage(LovyanGFX* d, const UiState& st)
     textTL(d, kW / 2 - 3 * (int)strlen(nb), 104, nb, &fonts::Font0, kDim);
 }
 
+
+// ---------------------------------------------------------------------------
+// page 3: scale dictionary
+// ---------------------------------------------------------------------------
+
+void drawScalePage(LovyanGFX* d, const UiState& st)
+{
+    if (st.scaleType < 0 || st.scaleType >= kScaleTypeCount) return;
+    const ScaleType& t = kScaleTypes[st.scaleType];
+
+    Note notes[8];
+    spellScale(st.scaleRoot, st.scaleType, notes);
+
+    char rn[4];
+    noteName(st.scaleRoot, rn);
+    char header[24];
+    snprintf(header, sizeof header, "%s %s", rn, t.name);
+    textTL(d, 6, 2, header, &fonts::Font2, kFg);
+
+    char idx[8];
+    snprintf(idx, sizeof idx, "%d/%d", st.scaleType + 1, kScaleTypeCount);
+    d->setFont(&fonts::Font0);
+    textTL(d, kW - 5 - d->textWidth(idx), 7, idx, &fonts::Font0, kDim);
+
+    // scale tones in order, with their degrees underneath
+    const int colW = 220 / t.n;
+    for (int i = 0; i < t.n; ++i) {
+        const int cx = 10 + colW * i + colW / 2;
+        char      nm[4];
+        noteName(notes[i], nm);
+        textMid(d, cx, 33, nm, &fonts::Font2, kFg);
+
+        char deg[4];
+        int  k = 0;
+        for (int a = 0; a < notes[i].acc; ++a) deg[k++] = '#';
+        for (int a = 0; a < -notes[i].acc; ++a) deg[k++] = 'b';
+        deg[k++] = (char)('1' + t.degrees[i]);
+        deg[k]   = '\0';
+        textMid(d, cx, 46, deg, &fonts::Font0, kDim);
+    }
+
+    // twelve pitch classes, the ones inside the scale lit up
+    int flats = 0, sharps = 0;
+    for (int i = 0; i < t.n; ++i) {
+        if (notes[i].acc > 0) {
+            sharps += notes[i].acc;
+        } else {
+            flats -= notes[i].acc;
+        }
+    }
+    const bool prefFlat = flats > sharps;
+
+    for (int pc = 0; pc < 12; ++pc) {
+        const int x = 10 + pc * 18;
+        int       deg = -1;
+        for (int i = 0; i < t.n; ++i) {
+            if (pitchClass(notes[i]) == pc) deg = i;
+        }
+        if (deg >= 0) {
+            d->fillRoundRect(x, 56, 16, 26, 2, rgb(50, 64, 88));
+        } else {
+            d->drawRoundRect(x, 56, 16, 26, 2, rgb(44, 51, 62));
+        }
+
+        Note nm = pcToNote(pc, prefFlat);
+        char b[4];
+        noteName(nm, b);
+        textMid(d, x + 8, 64, b, &fonts::Font0, deg >= 0 ? kFg : rgb(88, 98, 112));
+
+        if (deg >= 0) {
+            char dg[4];
+            int  k = 0;
+            for (int a = 0; a < notes[deg].acc; ++a) dg[k++] = '#';
+            for (int a = 0; a < -notes[deg].acc; ++a) dg[k++] = 'b';
+            dg[k++] = (char)('1' + t.degrees[deg]);
+            dg[k]   = '\0';
+            textMid(d, x + 8, 75, dg, &fonts::Font0, kAccent);
+        }
+    }
+
+    // interval formula
+    char f[32];
+    int  k = 0;
+    for (int i = 0; i < t.n; ++i) {
+        const int step = (i + 1 < t.n) ? (t.semis[i + 1] - t.semis[i]) : (12 - t.semis[i]);
+        k += snprintf(f + k, sizeof f - k, "%s%d", i ? " " : "", step);
+    }
+    textMid(d, kW / 2, 94, f, &fonts::Font0, kDim);
+}
 // ---------------------------------------------------------------------------
 
 void drawFooter(LovyanGFX* d, const UiState& st)
 {
-    static const char* kHints[3] = {
+    static const char* kHints[4] = {
         "TAB chord  Fn+<> key  ^v  ENTER",
         "TAB guitar  Fn+<> root  ^v type",
-        "TAB circle  Fn+<> voice  ^v type",
+        "TAB scale  Fn+<> voice  ^v type",
+        "TAB circle  Fn+<> root  ^v type",
     };
     d->drawFastHLine(4, 124, kW - 8, kLine);
-    textTL(d, 5, 126, kHints[st.page % 3], &fonts::Font0, rgb(104, 116, 132));
+    textTL(d, 5, 126, kHints[st.page % 4], &fonts::Font0, rgb(104, 116, 132));
 
     char bat[8];
     if (st.battery < 0) {
@@ -569,8 +659,10 @@ void uiRender(const UiState& st)
         drawPanel(d, st);
     } else if (st.page == 1) {
         drawChordPage(d, st);
-    } else {
+    } else if (st.page == 2) {
         drawGuitarPage(d, st);
+    } else {
+        drawScalePage(d, st);
     }
     drawFooter(d, st);
 
@@ -578,5 +670,6 @@ void uiRender(const UiState& st)
         gCanvas->pushSprite(0, 0);
     }
 }
+
 
 

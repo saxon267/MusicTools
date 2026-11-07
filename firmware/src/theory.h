@@ -93,4 +93,22 @@ bool dominantTarget(Note root, int typeIdx, Note& target);
 
 const char* intervalName(int semis);  // 0->"1", 4->"3", 10->"b7"
 
+// ---------------------------------------------------------------------------
+// Scale dictionary for the scale query page.
+// ---------------------------------------------------------------------------
+
+struct ScaleType {
+    const char* name;
+    uint8_t     n;
+    int8_t      semis[8];    // semitone offsets from the tonic
+    int8_t      degrees[8];  // letter offsets, so spelling stays correct
+};
+
+extern const ScaleType kScaleTypes[];
+extern const int       kScaleTypeCount;
+
+// Spells every scale tone; out[] needs room for 8 notes.
+void spellScale(Note root, int typeIdx, Note out[8]);
+
 }  // namespace mt
+
