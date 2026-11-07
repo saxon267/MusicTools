@@ -284,7 +284,7 @@ pio run -t upload      # 直接烧写
 
 ## 七、已知限制（重要）
 
-1. **没有在真机上跑过** —— 编译、链接、镜像校验都通过，但生成固件时本机没有连接 Cardputer，实际显示/按键/出声未经验证。
+1. **部分功能只做过离线和模拟器验证**：早期版本已在 Cardputer-Adv 真机上确认过显示、键盘、和弦发声都正常；之后新增的吉他指法、音阶播放、节拍器、调音表还没有逐项上机确认，遇到问题请开 issue 描述现象。
 2. **依赖 M5GFX 的板卡自动识别**：固件用 `M5.getBoard()` 区分一代（GPIO 矩阵键盘）和 Adv（TCA8418 键盘）。识别失败时键盘不会响应，此时侧面按钮仍可切换调。
 3. **音频**：Adv 走 ES8311（M5Unified 内部回调），一代走 NS4148。若无声，先看串口日志确认 `spk=1`。
 4. **和弦输入不能直接打 `dim` / `aug`**：`d`、`a` 会被当作新根音，用 `Fn+;` / `Fn+/` 切换类型即可。
@@ -300,6 +300,7 @@ pio run -t upload      # 直接烧写
 MIT，见 [LICENSE](LICENSE)。
 
 界面字体使用 M5GFX 内置的 `Font0` / `Font2` / `Font4` / `FreeSans9pt7b`（Adafruit GFX 字体集，源自 GNU FreeFont，GPLv3 + font exception），随库分发。
+
 
 
 
