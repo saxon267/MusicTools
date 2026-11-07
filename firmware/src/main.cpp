@@ -24,7 +24,6 @@
 #include "audio.h"
 #include "metronome.h"
 #include "theory.h"
-#include "tuner.h"
 #include "ui.h"
 
 namespace {
@@ -35,7 +34,6 @@ uint32_t gVolShownUntil = 0;
 uint32_t gVolSavedAt    = 0;
 bool     gVolSaveDirty  = false;
 uint32_t gNextBeatUs    = 0;
-uint32_t gLastTunerUi   = 0;
 bool    gDirty = true;
 
 struct RepeatKey {
@@ -340,7 +338,6 @@ void setup()
     g.selDegree  = 4;  // the V chord is a useful default
     g.battery    = M5.Power.getBatteryLevel();
     metroInit();
-    tunerInit();
     g.bpm          = 100;
     g.metroPattern = 0;
     g.metroOn      = false;
@@ -391,12 +388,8 @@ void loop()
     if (fireTab || fireLeft || fireRight || fireUp || fireDown || fireDel) gDirty = true;
 
     if (fireTab) {
-        g.page = (g.page + 1) % 6;
+        g.page = (g.page + 1) % 5;
         if (g.page == 1) seedChordFromSelection();
-        if (g.page == 5) {
-            // keep the microphone clean while tuning
-            g.metroOn = false;
-        }
     }
 
     if (g.page == 0) {
@@ -427,8 +420,6 @@ void loop()
         if (fireUp) g.bpm = g.bpm >= 240 ? 240 : g.bpm + 1;
         if (fireDown) g.bpm = g.bpm <= 40 ? 40 : g.bpm - 1;
         if (fireUp || fireDown) g.beat = -1;
-    } else {
-        // tuner page has no navigation, the reading updates by itself
     }
 
     if (!ks.fn && pollTypedKeys()) gDirty = true;
@@ -443,8 +434,6 @@ void loop()
             g.metroOn   = !g.metroOn;
             g.beat      = -1;
             gNextBeatUs = micros();
-        } else if (g.page == 5) {
-            audioStop();  // the tuner has nothing to play
         } else if (audioBusy()) {
             audioStop();  // second press stops whatever is sounding
         } else if (g.page == 0) {
@@ -507,15 +496,6 @@ void loop()
             gNextBeatUs += interval;
             if ((int32_t)(t - gNextBeatUs) > 0) gNextBeatUs = t + interval;
             gDirty = true;
-        }
-    }
-
-    if (g.page == 5) {
-        tunerPoll();
-        if (now - gLastTunerUi > 80) {
-            gLastTunerUi = now;
-            g.tuner      = tunerLast();
-            gDirty       = true;
         }
     }
 

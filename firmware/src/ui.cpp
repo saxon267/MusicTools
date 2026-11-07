@@ -358,7 +358,7 @@ void drawChordBox(LovyanGFX* d, int x, int y, const Fingering& f)
 {
     const int dx = 10, dy = 12, nFrets = 5;
     int       mn = 99, firstSounding = -1;
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 5; ++i) {
         if (f.fret[i] >= 0 && firstSounding < 0) firstSounding = i;
         if (f.fret[i] > 0 && f.fret[i] < mn) mn = f.fret[i];
     }
@@ -367,7 +367,7 @@ void drawChordBox(LovyanGFX* d, int x, int y, const Fingering& f)
     const int first  = (mn > 3) ? mn : 1;
     const int bottom = y + nFrets * dy;
 
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 5; ++i) {
         d->drawFastVLine(x + i * dx, y, nFrets * dy, rgb(64, 72, 86));
     }
     for (int j = 0; j <= nFrets; ++j) {
@@ -383,7 +383,7 @@ void drawChordBox(LovyanGFX* d, int x, int y, const Fingering& f)
     }
 
     // open / muted markers above the nut
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const int cx = x + i * dx;
         if (f.fret[i] == 0) {
             d->drawCircle(cx, y - 8, 2, kDim);
@@ -397,7 +397,7 @@ void drawChordBox(LovyanGFX* d, int x, int y, const Fingering& f)
     // fretted below it, which is exactly how a barre is held
     bool allAbove = true;
     int  atFret  = 0;
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 5; ++i) {
         if (f.fret[i] >= 0) {
             if (f.fret[i] < mn) allAbove = false;
             if (f.fret[i] == mn) ++atFret;
@@ -412,7 +412,7 @@ void drawChordBox(LovyanGFX* d, int x, int y, const Fingering& f)
         d->fillRoundRect(x + firstSounding * dx - 3, cy - 3, (last - firstSounding) * dx + 7, 7, 3, kFg);
     }
 
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 5; ++i) {
         if (f.fret[i] <= 0) continue;
         const int cx = x + i * dx;
         const int cy = y + (f.fret[i] - first) * dy + dy / 2;
@@ -617,74 +617,6 @@ void drawMetroPage(LovyanGFX* d, const UiState& st)
     textTL(d, 12, 100, "Fn+<> tempo   Fn+^v style", &fonts::Font0, rgb(96, 106, 120));
 }
 
-// ---------------------------------------------------------------------------
-// page 5: tuner
-// ---------------------------------------------------------------------------
-
-void drawTunerPage(LovyanGFX* d, const UiState& st)
-{
-    const TunerReading& r = st.tuner;
-
-    if (!r.mic) {
-        textTL(d, 12, 20, "NO MIC", &fonts::Font4, kDim);
-        textTL(d, 12, 56, "microphone not available", &fonts::Font0, kDim);
-        return;
-    }
-
-    if (!r.valid) {
-        textTL(d, 12, 18, "--", &fonts::Font4, kDim);
-        textTL(d, 12, 56, "listening...", &fonts::Font0, kDim);
-    } else {
-        static const char* kNames[12] = {"C", "C#", "D", "D#", "E", "F",
-                                         "F#", "G", "G#", "A", "A#", "B"};
-        const int  oct  = r.note / 12 - 1;
-        const char* nm  = kNames[imod(r.note, 12)];
-        const int  cent = (int)lroundf(r.cents);
-        const bool good = fabsf(r.cents) < 5.0f;
-
-        char line[16];
-        snprintf(line, sizeof line, "%s%d", nm, oct);
-        textTL(d, 12, 14, line, &fonts::Font4, good ? rgb(120, 200, 140) : kFg);
-
-        snprintf(line, sizeof line, "%+d", cent);
-        textTL(d, 82, 20, line, &fonts::Font2, good ? rgb(120, 200, 140) : kAccent);
-
-        snprintf(line, sizeof line, "%.1f Hz", r.freq);
-        textTL(d, 82, 38, line, &fonts::Font0, kDim);
-    }
-
-    // needle, +/-50 cents across 180 px
-    const int cx = kW / 2, y = 62;
-    d->drawFastHLine(cx - 90, y, 180, rgb(52, 60, 74));
-    for (int c = -50; c <= 50; c += 25) {
-        const int x = cx + c * 9 / 5;
-        d->drawFastVLine(x, y - (c == 0 ? 8 : 4), c == 0 ? 16 : 8,
-                         c == 0 ? kFg : rgb(70, 80, 96));
-    }
-    if (r.valid) {
-        int pos = (int)(r.cents * 9.0f / 5.0f);
-        if (pos > 90) pos = 90;
-        if (pos < -90) pos = -90;
-        const bool good = fabsf(r.cents) < 5.0f;
-        d->fillRoundRect(cx + pos - 3, y - 5, 6, 10, 2,
-                         good ? rgb(120, 200, 140) : rgb(230, 150, 90));
-    }
-
-    const char* status = !r.valid ? "" : (fabsf(r.cents) < 5.0f ? "IN TUNE"
-                                          : r.cents < 0      ? "TUNE UP"
-                                                             : "TUNE DOWN");
-    d->setFont(&fonts::Font0);
-    textTL(d, cx - d->textWidth(status) / 2, 86, status, &fonts::Font0,
-           fabsf(r.cents) < 5.0f ? rgb(120, 200, 140) : kDim);
-
-    // input level, so a silent or too-quiet signal is obvious
-    d->drawRect(12, 102, 216, 7, rgb(40, 46, 58));
-    const int lw = (214 * r.level) / 100;
-    if (lw > 0) {
-        d->fillRect(13, 103, lw, 5, r.valid ? rgb(120, 200, 140) : rgb(104, 122, 148));
-    }
-}
-
 // ---------------------------------------------------------------------------// Transient bar shown for a moment after the volume keys are used.
 void drawVolumeBar(LovyanGFX* d, const UiState& st)
 {
@@ -707,16 +639,16 @@ void drawVolumeBar(LovyanGFX* d, const UiState& st)
 
 void drawTabs(LovyanGFX* d, const UiState& st)
 {
-    static const char* kNames[6] = {"CIRCLE", "CHORD", "GUITAR", "SCALE", "TEMPO", "TUNER"};
-    for (int i = 0; i < 6; ++i) {
-        const int  x  = i * 40;
+    static const char* kNames[5] = {"CIRCLE", "CHORD", "GUITAR", "SCALE", "TEMPO"};
+    for (int i = 0; i < 5; ++i) {
+        const int  x  = i * 48;
         const bool on = (i == st.page);
         if (on) {
-            d->fillRoundRect(x + 1, 2, 38, 9, 2, kSelBg);
+            d->fillRoundRect(x + 1, 2, 46, 9, 2, kSelBg);
         }
         d->setFont(&fonts::Font0);
         const int w = d->textWidth(kNames[i]);
-        textTL(d, x + (40 - w) / 2, 3, kNames[i], &fonts::Font0,
+        textTL(d, x + (48 - w) / 2, 3, kNames[i], &fonts::Font0,
                on ? kFg : rgb(88, 98, 112));
     }
     d->drawFastHLine(0, kTabH, kW, kLine);
@@ -724,16 +656,15 @@ void drawTabs(LovyanGFX* d, const UiState& st)
 
 void drawFooter(LovyanGFX* d, const UiState& st)
 {
-    static const char* kHints[6] = {
+    static const char* kHints[5] = {
         "TAB chord  Fn+<> key  ^v  ENTER",
         "TAB guitar  Fn+<> root  ^v type",
         "TAB scale  Fn+<> voice  ^v type",
         "TAB tempo  Fn+<> root ^v ENTER",
-        "TAB tuner  Fn+<> tempo  ^v style",
-        "TAB circle  play a note  (mic)",
+        "TAB circle  Fn+<> tempo  ^v style",
     };
     d->drawFastHLine(4, 124, kW - 8, kLine);
-    textTL(d, 5, 126, kHints[st.page % 6], &fonts::Font0, rgb(104, 116, 132));
+    textTL(d, 5, 126, kHints[st.page % 5], &fonts::Font0, rgb(104, 116, 132));
 
     char bat[8];
     if (st.battery < 0) {
@@ -771,7 +702,7 @@ void uiSplash()
 
     d->setFont(&fonts::Font0);
     d->setTextColor(rgb(120, 132, 148));
-    d->drawString("CHORDS SCALES TUNER", cx, 114);
+    d->drawString("CHORDS SCALES TEMPO", cx, 114);
 
     if (gCanvas) gCanvas->pushSprite(0, 0);
 }
@@ -808,10 +739,8 @@ void uiRender(const UiState& st)
         drawGuitarPage(d, st);
     } else if (st.page == 3) {
         drawScalePage(d, st);
-    } else if (st.page == 4) {
-        drawMetroPage(d, st);
     } else {
-        drawTunerPage(d, st);
+        drawMetroPage(d, st);
     }
     drawVolumeBar(d, st);
     drawFooter(d, st);

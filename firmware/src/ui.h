@@ -3,7 +3,6 @@
 #include <cstdint>
 
 #include "theory.h"
-#include "tuner.h"
 
 struct UiState {
     int  page;        // 0 = circle, 1 = chord query, 2 = guitar, 3 = scales
@@ -30,14 +29,13 @@ struct UiState {
     bool metroOn;
     int  beat;  // -1 before the first click
 
-    // tuner page
-    TunerReading tuner;
 };
 
 void uiBegin();
 void uiSplash();  // boot logo, blocking (call once from setup)
 bool uiHasCanvas();
 void uiRender(const UiState& st);
+
 
 
 

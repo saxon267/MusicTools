@@ -456,19 +456,19 @@ const UI = (() => {
   // ----------------------------------------------------------------
 
   const drawTabs = (st) => {
-    const names = ['CIRCLE', 'CHORD', 'GUITAR', 'SCALE', 'TEMPO', 'TUNER'];
+    const names = ['CIRCLE', 'CHORD', 'GUITAR', 'SCALE', 'TEMPO'];
     const d = C.ctx;
-    for (let i = 0; i < 6; i++) {
-      const x = i * 40;
+    for (let i = 0; i < 5; i++) {
+      const x = i * 48;
       const on = i === st.page;
       if (on) {
         d.fillStyle = COL.selBg;
         d.beginPath();
-        d.roundRect(x + 1, 2, 38, 9, 2);
+        d.roundRect(x + 1, 2, 46, 9, 2);
         d.fill();
       }
       const w = measure(names[i], F_TINY);
-      textTL(x + (40 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#58626f');
+      textTL(x + (48 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#58626f');
     }
     d.strokeStyle = COL.line;
     d.beginPath();
@@ -524,73 +524,7 @@ const UI = (() => {
     textTL(12, 100, 'Fn+<> tempo   Fn+^v style', F_TINY, '#606a78');
   };
 
-  // ---------------------------------------------------------------- page 5
-
-  const drawTunerPage = (st) => {
-    const d = C.ctx;
-    const r = st.tuner;
-
-    if (!r.mic) {
-      textTL(12, 20, 'NO MIC', F_BIG, COL.dim);
-      textTL(12, 50, 'mic unavailable', F_TINY, COL.dim);
-      return;
-    }
-    if (!r.valid) {
-      textTL(12, 18, '--', F_BIG, COL.dim);
-      textTL(12, 50, 'listening...', F_TINY, COL.dim);
-    } else {
-      const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-      const good = Math.abs(r.cents) < 5;
-      const oct = Math.floor(r.note / 12) - 1;
-      textTL(12, 14, `${names[MT.imod(r.note, 12)]}${oct}`, F_BIG, good ? '#78c88c' : COL.fg);
-      textTL(82, 20, (r.cents >= 0 ? '+' : '') + Math.round(r.cents), F_MID, good ? '#78c88c' : COL.accent);
-      textTL(82, 38, `${r.freq.toFixed(1)} Hz`, F_TINY, COL.dim);
-    }
-
-    const cx = W / 2;
-    const y = 62;
-    d.strokeStyle = '#343c4a';
-    d.lineWidth = 1;
-    d.beginPath();
-    d.moveTo(cx - 90, y);
-    d.lineTo(cx + 90, y);
-    d.stroke();
-
-    for (let c = -50; c <= 50; c += 25) {
-      const x = cx + (c * 9) / 5;
-      d.strokeStyle = c === 0 ? COL.fg : '#46505f';
-      d.beginPath();
-      d.moveTo(x, y - (c === 0 ? 8 : 4));
-      d.lineTo(x, y + (c === 0 ? 8 : 4));
-      d.stroke();
-    }
-
-    if (r.valid) {
-      const good = Math.abs(r.cents) < 5;
-      let pos = (r.cents * 9) / 5;
-      pos = Math.max(-90, Math.min(90, pos));
-      d.fillStyle = good ? '#78c88c' : '#e6965a';
-      d.beginPath();
-      d.roundRect(cx + pos - 3, y - 5, 6, 10, 2);
-      d.fill();
-    }
-
-    const status = !r.valid ? '' : Math.abs(r.cents) < 5 ? 'IN TUNE' : r.cents < 0 ? 'TUNE UP' : 'TUNE DOWN';
-    const sw = measure(status, F_TINY);
-    textTL(cx - sw / 2, 86, status, F_TINY, Math.abs(r.cents) < 5 ? '#78c88c' : COL.dim);
-
-    // input level, so a silent or too-quiet signal is obvious
-    d.strokeStyle = '#282e3a';
-    d.lineWidth = 1;
-    d.strokeRect(12, 102, 216, 7);
-    const lw = Math.round((214 * (r.level || 0)) / 100);
-    if (lw > 0) {
-      d.fillStyle = r.valid ? '#78c88c' : '#687a94';
-      d.fillRect(13, 103, lw, 5);
-    }
-  };
-
-  const drawVolumeBar = (st) => {
+    const drawVolumeBar = (st) => {
     if (!st.showVolume) return;
     const d = C.ctx;
     d.fillStyle = '#1a202a';
@@ -625,8 +559,7 @@ const UI = (() => {
       'TAB guitar  Fn+<> root  ^v type',
       'TAB scale  Fn+<> voice  ^v type',
       'TAB tempo  Fn+<> root ^v ENTER',
-      'TAB tuner  Fn+<> tempo  ^v style',
-      'TAB circle  play a note  (mic)',
+      'TAB circle  Fn+<> tempo  ^v style',
     ];
     const d = C.ctx;
     d.strokeStyle = COL.line;
@@ -635,7 +568,7 @@ const UI = (() => {
     d.lineTo(W - 4, 124);
     d.stroke();
 
-    textTL(5, 125, hints[st.page % 6], F_TINY, COL.footer);
+    textTL(5, 125, hints[st.page % 5], F_TINY, COL.footer);
 
     const bat = st.battery < 0 ? '--' : `${st.battery}%`;
     const w = measure(bat, F_TINY);
@@ -678,7 +611,7 @@ const UI = (() => {
     d.stroke();
 
     textMid(cx, 97, 'MusicTools', F_MID, COL.fg);
-    textMid(cx, 114, 'CHORDS SCALES TUNER', F_TINY, COL.dim);
+    textMid(cx, 114, 'CHORDS SCALES TEMPO', F_TINY, COL.dim);
   };
 
   const render = (st, canvas) => {
@@ -700,8 +633,7 @@ const UI = (() => {
     } else if (st.page === 1) drawChordPage(st);
     else if (st.page === 2) drawGuitarPage(st);
     else if (st.page === 3) drawScalePage(st);
-    else if (st.page === 4) drawMetroPage(st);
-    else drawTunerPage(st);
+    else drawMetroPage(st);
 
     drawVolumeBar(st);
     drawFooter(st);

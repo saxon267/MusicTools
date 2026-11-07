@@ -5,25 +5,26 @@
 
 namespace {
 
-constexpr uint32_t kRate    = 16000;
-constexpr int      kSamples = 208;  // 13 ms
+// Generated at the speaker's own sample rate: resampling a short transient is
+// what made the old click sound like a broken buzz.
+constexpr int kMaxRate    = 48000;
+constexpr int kMaxSamples = (int)(kMaxRate * 0.04f);
 
-int16_t gAccent[kSamples];
-int16_t gNormal[kSamples];
+int16_t  gAccent[kMaxSamples];
+int16_t  gNormal[kMaxSamples];
+uint32_t gRate = 48000;
+int      gLen  = 0;
 
-// A click is a transient, so it needs shaping: a short fade in so the first
-// sample is not a step, and a fade out to zero before the buffer ends. Without
-// them the codec clips and the click buzzes instead of ticking.
 void render(int16_t* dst, float freq, float gain)
 {
-    const float dur    = kSamples / (float)kRate;
-    const float attack = 0.0018f;
-    const float tail   = 0.0025f;
+    const float dur    = gLen / (float)gRate;
+    const float attack = 0.002f;
+    const float tail   = 0.004f;
 
-    for (int i = 0; i < kSamples; ++i) {
-        const float t = i / (float)kRate;
+    for (int i = 0; i < gLen; ++i) {
+        const float t = i / (float)gRate;
 
-        float env = expf(-t * 95.0f);
+        float env = expf(-t * 130.0f);
         if (t < attack) env *= t / attack;
         const float left = dur - t;
         if (left < tail) env *= left / tail;
@@ -31,8 +32,8 @@ void render(int16_t* dst, float freq, float gain)
 
         const float s = sinf(6.2831853f * freq * t);
         float       v = s * env * gain;
-        if (v > 22000.0f) v = 22000.0f;
-        if (v < -22000.0f) v = -22000.0f;
+        if (v > 20000.0f) v = 20000.0f;
+        if (v < -20000.0f) v = -20000.0f;
         dst[i] = (int16_t)v;
     }
 }
@@ -52,12 +53,17 @@ const int kMetroPatternCount = (int)(sizeof(kMetroPatterns) / sizeof(kMetroPatte
 
 void metroInit()
 {
-    render(gAccent, 1180.0f, 8000.0f);
-    render(gNormal, 790.0f, 4600.0f);
+    uint32_t rate = M5.Speaker.config().sample_rate;
+    if (rate < 8000 || rate > (uint32_t)kMaxRate) rate = 48000;
+    gRate = rate;
+    gLen  = (int)(rate * 0.028f);  // 28 ms: a short "beep", not a click
+
+    render(gAccent, 2000.0f, 15000.0f);
+    render(gNormal, 1350.0f, 9500.0f);
 }
 
 void metroClick(bool accented)
 {
     if (!M5.Speaker.isEnabled()) return;
-    M5.Speaker.playRaw(accented ? gAccent : gNormal, kSamples, kRate, false, 0, -1, false);
+    M5.Speaker.playRaw(accented ? gAccent : gNormal, gLen, gRate, false, 0, -1, false);
 }
