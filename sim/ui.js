@@ -410,7 +410,8 @@ const UI = (() => {
     const colW = 220 / t.n;
     for (let i = 0; i < t.n; i++) {
       const cx = 10 + colW * i + colW / 2;
-      textMid(cx, 44, MT.noteName(notes[i]), F_MID, COL.fg);
+      // every pitch class owns a hue, so the scale reads as a slice of a rainbow
+      textMid(cx, 44, MT.noteName(notes[i]), F_MID, hsv(MT.pitchClass(notes[i]) * 30, 0.55, 0.95));
       textMid(cx, 56, MT.degreeLabel(notes[i], t.degrees[i]), F_TINY, COL.dim);
     }
 
@@ -428,12 +429,12 @@ const UI = (() => {
       for (let i = 0; i < t.n; i++) if (MT.pitchClass(notes[i]) === pc) deg = i;
 
       if (deg >= 0) {
-        d.fillStyle = '#324058';
+        d.fillStyle = hsv(pc * 30, 0.82, 0.72);
         d.beginPath();
         d.roundRect(x, 62, 16, 26, 2);
         d.fill();
       } else {
-        d.strokeStyle = '#2c333e';
+        d.strokeStyle = hsv(pc * 30, 0.45, 0.2);
         d.lineWidth = 1;
         d.beginPath();
         d.roundRect(x, 62, 16, 26, 2);
@@ -441,8 +442,8 @@ const UI = (() => {
       }
 
       const label = deg >= 0 ? MT.noteName(notes[deg]) : MT.noteName(MT.pcToNote(pc, prefFlat));
-      textMid(x + 8, 70, label, F_TINY, deg >= 0 ? COL.fg : '#58626f');
-      if (deg >= 0) textMid(x + 8, 81, MT.degreeLabel(notes[deg], t.degrees[deg]), '7px Consolas, monospace', COL.accent);
+      textMid(x + 8, 70, label, F_TINY, deg >= 0 ? COL.ink : '#58626f');
+      if (deg >= 0) textMid(x + 8, 81, MT.degreeLabel(notes[deg], t.degrees[deg]), '7px Consolas, monospace', COL.ink);
     }
 
     const steps = [];
@@ -474,6 +475,35 @@ const UI = (() => {
     d.moveTo(0, 12);
     d.lineTo(W, 12);
     d.stroke();
+  };
+
+  const drawVolumeBar = (st) => {
+    if (!st.showVolume) return;
+    const d = C.ctx;
+    d.fillStyle = '#1a202a';
+    d.beginPath();
+    d.roundRect(8, 98, 224, 20, 5);
+    d.fill();
+    d.strokeStyle = '#3c485a';
+    d.lineWidth = 1;
+    d.stroke();
+
+    textTL(14, 104, 'VOL', F_TINY, COL.dim);
+
+    d.fillStyle = '#12161c';
+    d.beginPath();
+    d.roundRect(46, 104, 130, 8, 4);
+    d.fill();
+    const w = Math.round((130 * st.volume) / 100);
+    if (w > 0) {
+      d.fillStyle = COL.accent;
+      d.beginPath();
+      d.roundRect(46, 104, w, 8, Math.min(4, w / 2));
+      d.fill();
+    }
+
+    const b = `${st.volume}%`;
+    textTL(W - 12 - measure(b, F_TINY), 104, b, F_TINY, COL.fg);
   };
 
   const drawFooter = (st) => {
@@ -512,6 +542,7 @@ const UI = (() => {
     else if (st.page === 2) drawGuitarPage(st);
     else drawScalePage(st);
 
+    drawVolumeBar(st);
     drawFooter(st);
   };
 
@@ -519,6 +550,7 @@ const UI = (() => {
 })();
 
 if (typeof module !== 'undefined') module.exports = UI;
+
 
 
 

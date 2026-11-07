@@ -16,6 +16,7 @@
 //   backspace           page 1: delete the last character
 //   Enter or Space      play the chord
 #include <M5Cardputer.h>
+#include <Preferences.h>
 
 #include <cctype>
 #include <cstring>
@@ -27,6 +28,10 @@
 namespace {
 
 UiState g;
+Preferences gPrefs;
+uint32_t gVolShownUntil = 0;
+uint32_t gVolSavedAt    = 0;
+bool     gVolSaveDirty  = false;
 bool    gDirty = true;
 
 struct RepeatKey {
@@ -228,13 +233,36 @@ void editScaleRoot(char c)
         g.scaleRoot.acc    = 0;
     } else if (c == '#') {
         g.scaleRoot.acc = 1;
-    } else if (c == '-') {
-        g.scaleRoot.acc = -1;
     }
+}
+
+void changeVolume(int delta)
+{
+    int v = g.volume + delta;
+    if (v < 0) v = 0;
+    if (v > 100) v = 100;
+    if (v == g.volume) return;
+
+    g.volume       = v;
+    gVolShownUntil = millis() + 1200;
+    gVolSaveDirty  = true;
+    gVolSavedAt    = millis();
+    audioSetVolume(v);
+    gDirty = true;
 }
 
 void handleChar(char c)
 {
+    // global volume, on every page
+    if (c == '-' || c == '_') {
+        changeVolume(-10);
+        return;
+    }
+    if (c == '=' || c == '+') {
+        changeVolume(10);
+        return;
+    }
+
     if (g.page == 0) {
         if (c >= '1' && c <= '7') {
             g.selDegree = c - '1';
@@ -305,6 +333,10 @@ void setup()
     g.minorView  = false;
     g.selDegree  = 4;  // the V chord is a useful default
     g.battery    = M5.Power.getBatteryLevel();
+    gPrefs.begin("fifths", false);
+    g.volume     = (int)gPrefs.getUChar("vol", 100);
+    audioSetVolume(g.volume);
+    g.showVolume = false;
     g.audioBusy  = false;
     g.chordType  = 0;
     g.scaleRoot  = mt::majorTonic(0);
@@ -420,6 +452,17 @@ void loop()
         }
     }
 
+    if (gVolShownUntil && now > gVolShownUntil) {
+        gVolShownUntil = 0;
+        gDirty         = true;
+    }
+    g.showVolume = (gVolShownUntil != 0);
+
+    if (gVolSaveDirty && now - gVolSavedAt > 800) {
+        gPrefs.putUChar("vol", (uint8_t)g.volume);
+        gVolSaveDirty = false;
+    }
+
     if (gDirty) {
         uiRender(g);
         gDirty = false;
@@ -427,6 +470,7 @@ void loop()
 
     delay(5);
 }
+
 
 
 

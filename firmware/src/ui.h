@@ -10,6 +10,8 @@ struct UiState {
     bool minorView;   // circle page: show the relative minor
     int  selDegree;   // circle page: selected diatonic degree 0..6
     int  battery;     // -1 when unknown
+    int  volume;      // 0..100 global output volume
+    bool showVolume;  // draw the transient volume bar
     bool audioBusy;
 
     // chord page
@@ -25,5 +27,6 @@ struct UiState {
 void uiBegin();
 bool uiHasCanvas();
 void uiRender(const UiState& st);
+
 
 

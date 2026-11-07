@@ -514,7 +514,8 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
         const int cx = 10 + colW * i + colW / 2;
         char      nm[4];
         noteName(notes[i], nm);
-        textMid(d, cx, 44, nm, &fonts::Font2, kFg);
+        // every pitch class owns a hue, so the scale reads as a slice of a rainbow
+        textMid(d, cx, 44, nm, &fonts::Font2, hueColor(pitchClass(notes[i]) * 30.0f, 0.55f, 0.95f));
 
         char deg[4];
         int  k = 0;
@@ -543,9 +544,9 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
             if (pitchClass(notes[i]) == pc) deg = i;
         }
         if (deg >= 0) {
-            d->fillRoundRect(x, 62, 16, 26, 2, rgb(50, 64, 88));
+            d->fillRoundRect(x, 62, 16, 26, 2, hueColor(pc * 30.0f, 0.82f, 0.72f));
         } else {
-            d->drawRoundRect(x, 62, 16, 26, 2, rgb(44, 51, 62));
+            d->drawRoundRect(x, 62, 16, 26, 2, hueColor(pc * 30.0f, 0.45f, 0.20f));
         }
 
         // inside the scale use the spelled tone (F#, not Gb), outside fall back
@@ -555,7 +556,7 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
         } else {
             noteName(pcToNote(pc, prefFlat), b);
         }
-        textMid(d, x + 8, 70, b, &fonts::Font0, deg >= 0 ? kFg : rgb(88, 98, 112));
+        textMid(d, x + 8, 70, b, &fonts::Font0, deg >= 0 ? kInk : rgb(88, 98, 112));
 
         if (deg >= 0) {
             char dg[4];
@@ -564,7 +565,7 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
             for (int a = 0; a < -notes[deg].acc; ++a) dg[k++] = 'b';
             dg[k++] = (char)('1' + t.degrees[deg]);
             dg[k]   = '\0';
-            textMid(d, x + 8, 81, dg, &fonts::Font0, kAccent);
+            textMid(d, x + 8, 81, dg, &fonts::Font0, deg >= 0 ? kInk : kAccent);
         }
     }
 
@@ -578,6 +579,26 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
     textMid(d, kW / 2, 96, f, &fonts::Font0, kDim);
 }
 // ---------------------------------------------------------------------------
+
+// Transient bar shown for a moment after the volume keys are used.
+void drawVolumeBar(LovyanGFX* d, const UiState& st)
+{
+    if (!st.showVolume) return;
+
+    d->fillRoundRect(8, 98, 224, 20, 5, rgb(26, 32, 42));
+    d->drawRoundRect(8, 98, 224, 20, 5, rgb(60, 72, 90));
+    textTL(d, 14, 104, "VOL", &fonts::Font0, kDim);
+
+    const int barX = 46, barW = 130, barY = 104, barH = 8;
+    d->fillRoundRect(barX, barY, barW, barH, 4, rgb(18, 22, 28));
+    const int w = (barW * st.volume) / 100;
+    if (w > 0) d->fillRoundRect(barX, barY, w, barH, 4, kAccent);
+
+    char b[8];
+    snprintf(b, sizeof b, "%d%%", st.volume);
+    d->setFont(&fonts::Font0);
+    textTL(d, kW - 12 - d->textWidth(b), 104, b, &fonts::Font0, kFg);
+}
 
 void drawTabs(LovyanGFX* d, const UiState& st)
 {
@@ -654,12 +675,15 @@ void uiRender(const UiState& st)
     } else {
         drawScalePage(d, st);
     }
+    drawVolumeBar(d, st);
     drawFooter(d, st);
 
     if (gCanvas) {
         gCanvas->pushSprite(0, 0);
     }
 }
+
+
 
 
 

@@ -15,6 +15,8 @@ const App = (() => {
     scaleRoot: MT.note(0, 0),
     scaleType: 0,
     battery: 72,
+    volume: 100,
+    showVolume: false,
     playing: false,
   };
 
@@ -23,6 +25,22 @@ const App = (() => {
   // ---------------------------------------------------------------- audio
 
   const audio = { ctx: null, master: null, nodes: [], timer: null };
+  let volTimer = null;
+
+  const gainOf = () => 0.22 * (st.volume / 100);
+
+  const changeVolume = (delta) => {
+    const v = Math.max(0, Math.min(100, st.volume + delta));
+    if (v === st.volume) return;
+    st.volume = v;
+    st.showVolume = true;
+    if (volTimer) clearTimeout(volTimer);
+    volTimer = setTimeout(() => {
+      st.showVolume = false;
+      refresh();
+    }, 1200);
+    refresh();
+  };
 
   const ensureAudio = () => {
     if (!audio.ctx) audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -61,7 +79,7 @@ const App = (() => {
     const rootMidi = 48 + rootPc;
 
     const master = ctx.createGain();
-    master.gain.value = 0.22;
+    master.gain.value = gainOf();
     master.connect(ctx.destination);
     audio.master = master;
 
@@ -102,7 +120,7 @@ const App = (() => {
     const t = MT.SCALE_TYPES[typeIdx];
 
     const master = ctx.createGain();
-    master.gain.value = 0.22;
+    master.gain.value = gainOf();
     master.connect(ctx.destination);
     audio.master = master;
 
@@ -345,6 +363,10 @@ const App = (() => {
     const h = new URLSearchParams(location.hash.replace('#', ''));
     if (h.has('page')) st.page = Math.max(0, Math.min(3, Number(h.get('page')) || 0));
     if (h.has('key')) st.slot = MT.imod(Number(h.get('key')) || 0, 12);
+    if (h.has('vol')) {
+      st.volume = Math.max(0, Math.min(100, Number(h.get('vol')) || 0));
+      st.showVolume = true;
+    }
     if (h.has('minor')) st.minorView = true;
     if (h.has('scale')) st.scaleType = MT.imod(Number(h.get('scale')) || 0, MT.SCALE_TYPES.length);
     if (h.has('chord')) {
@@ -365,6 +387,16 @@ const App = (() => {
       refresh();
     });
     document.addEventListener('keydown', (e) => {
+      if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        changeVolume(-10);
+        return;
+      }
+      if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        changeVolume(10);
+        return;
+      }
       if (keyMap[e.key]) {
         e.preventDefault();
         input(keyMap[e.key]);
@@ -380,5 +412,6 @@ const App = (() => {
 
   return { init, refresh, state: st };
 })();
+
 
 

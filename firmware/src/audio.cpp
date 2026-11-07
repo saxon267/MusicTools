@@ -24,7 +24,15 @@ float noteFreq(int midi)
 void audioInit()
 {
     if (!M5.Speaker.isEnabled()) return;
-    M5.Speaker.setVolume(255);  // the 1 W speaker needs everything it can get
+    M5.Speaker.setVolume(255);  // overwritten with the saved level in setup()
+}
+
+void audioSetVolume(int pct)
+{
+    if (!M5.Speaker.isEnabled()) return;
+    if (pct < 0) pct = 0;
+    if (pct > 100) pct = 100;
+    M5.Speaker.setVolume((uint8_t)((pct * 255 + 50) / 100));
 }
 
 bool audioBusy()
@@ -147,3 +155,4 @@ void audioPlayScale(mt::Note root, int typeIdx)
 
     M5.Speaker.playRaw(gBuf, total, kScaleRate, false, 0, -1, true);
 }
+
