@@ -742,6 +742,33 @@ void drawFooter(LovyanGFX* d, const UiState& st)
 
 }  // namespace
 
+void uiSplash()
+{
+    LovyanGFX* d = gCanvas ? (LovyanGFX*)gCanvas : (LovyanGFX*)&M5.Display;
+    const int  cx = kW / 2, cy = 44;
+
+    d->fillScreen(kBg);
+    for (int i = 0; i < 12; ++i) {
+        const float a0 = -105.0f + 30.0f * i + 1.4f;
+        const float a1 = a0 + 30.0f - 2.8f;
+        fillSeg(d, cx, cy, 22, 40, a0, a1, hueColor(i * 30.0f, 0.9f, 0.92f));
+    }
+    outlineSeg(d, cx, cy, 22, 40, -103.6f, -76.4f, TFT_WHITE);  // C at the top
+    d->fillCircle(cx, cy, 20, kBg);
+    d->drawCircle(cx, cy, 16, rgb(38, 46, 58));
+
+    d->setFont(&fonts::Font2);
+    d->setTextDatum(textdatum_t::middle_center);
+    d->setTextColor(kFg);
+    d->drawString("MusicTools", cx, 97);
+
+    d->setFont(&fonts::Font0);
+    d->setTextColor(rgb(120, 132, 148));
+    d->drawString("CHORDS SCALES TUNER", cx, 114);
+
+    if (gCanvas) gCanvas->pushSprite(0, 0);
+}
+
 void uiBegin()
 {
     if (!gCanvas) {
@@ -786,6 +813,7 @@ void uiRender(const UiState& st)
         gCanvas->pushSprite(0, 0);
     }
 }
+
 
 
 

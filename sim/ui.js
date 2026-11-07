@@ -632,12 +632,56 @@ const UI = (() => {
     textTL(W - 5 - w, 125, bat, F_TINY, st.playing ? '#78c88c' : COL.footer);
   };
 
+  const drawSplash = () => {
+    const d = C.ctx;
+    d.fillStyle = COL.bg;
+    d.fillRect(0, 0, W, H);
+
+    const cx = W / 2;
+    const cy = 44;
+    for (let i = 0; i < 12; i++) {
+      const a0 = -105 + 30 * i + 1.4;
+      const a1 = a0 + 27.2;
+      d.beginPath();
+      d.arc(cx, cy, 40, a0 * RAD, a1 * RAD);
+      d.arc(cx, cy, 22, a1 * RAD, a0 * RAD, true);
+      d.closePath();
+      d.fillStyle = hsv(i * 30, 0.9, 0.92);
+      d.fill();
+    }
+    d.strokeStyle = '#ffffff';
+    d.lineWidth = 1.2;
+    d.beginPath();
+    d.arc(cx, cy, 40, -103.6 * RAD, -76.4 * RAD);
+    d.stroke();
+    d.beginPath();
+    d.arc(cx, cy, 22, -103.6 * RAD, -76.4 * RAD);
+    d.stroke();
+
+    d.fillStyle = COL.bg;
+    d.beginPath();
+    d.arc(cx, cy, 20, 0, Math.PI * 2);
+    d.fill();
+    d.strokeStyle = '#262e3a';
+    d.beginPath();
+    d.arc(cx, cy, 16, 0, Math.PI * 2);
+    d.stroke();
+
+    textMid(cx, 97, 'MusicTools', F_MID, COL.fg);
+    textMid(cx, 114, 'CHORDS SCALES TUNER', F_TINY, COL.dim);
+  };
+
   const render = (st, canvas) => {
     if (!C.ctx) C.ctx = canvas.getContext('2d');
     const d = C.ctx;
     d.imageSmoothingEnabled = false;
     d.fillStyle = COL.bg;
     d.fillRect(0, 0, W, H);
+
+    if (st.splash) {
+      drawSplash();
+      return;
+    }
 
     drawTabs(st);
     if (st.page === 0) {
@@ -657,6 +701,7 @@ const UI = (() => {
 })();
 
 if (typeof module !== 'undefined') module.exports = UI;
+
 
 
 

@@ -15,6 +15,7 @@ const App = (() => {
     scaleRoot: MT.note(0, 0),
     scaleType: 0,
     battery: 72,
+    splash: false,
     bpm: 100,
     metroPattern: 0,
     metroOn: false,
@@ -571,7 +572,15 @@ const App = (() => {
 
   const init = (cv) => {
     canvas = cv;
+    const deepLinked = location.hash.includes('page=');
     applyHash();
+    if (!deepLinked) {
+      st.splash = true;
+      setTimeout(() => {
+        st.splash = false;
+        refresh();
+      }, 1400);
+    }
     window.addEventListener('hashchange', () => {
       applyHash();
       refresh();
@@ -602,6 +611,7 @@ const App = (() => {
 
   return { init, refresh, state: st };
 })();
+
 
 
 

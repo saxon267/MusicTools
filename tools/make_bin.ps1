@@ -24,7 +24,7 @@ $esp = Join-Path $env:USERPROFILE ".platformio\packages\tool-esptoolpy\esptool.p
 if (-not (Test-Path $esp)) { throw "esptool not found at $esp" }
 
 New-Item -ItemType Directory -Force -Path $out | Out-Null
-$target = Join-Path $out "cardputer-circle-of-fifths-8MB.bin"
+$target = Join-Path $out "MusicTools-8MB.bin"
 
 Write-Host "== merging ==" -ForegroundColor Cyan
 & $Python $esp --chip esp32s3 merge_bin `
@@ -37,3 +37,4 @@ if ($LASTEXITCODE -ne 0) { throw "merge failed" }
 
 $kb = [math]::Round((Get-Item $target).Length / 1KB, 1)
 Write-Host "`nOK -> $target ($kb KB, flash at 0x0)" -ForegroundColor Green
+

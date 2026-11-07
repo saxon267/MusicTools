@@ -331,6 +331,8 @@ void setup()
 
     audioInit();
     uiBegin();
+    uiSplash();
+    delay(1400);
 
     g.page       = 0;
     g.slot       = 0;
@@ -344,7 +346,7 @@ void setup()
     g.metroOn      = false;
     g.beat         = -1;
 
-    gPrefs.begin("fifths", false);
+    gPrefs.begin("musictools", false);
     g.volume     = (int)gPrefs.getUChar("vol", 100);
     audioSetVolume(g.volume);
     g.showVolume = false;
@@ -357,7 +359,7 @@ void setup()
     g.gtrPage    = 0;
     strcpy(g.chordText, "C");
 
-    Serial.printf("[fifths] board=%d panel=%dx%d sprite=%d spk=%d\n", (int)M5.getBoard(),
+    Serial.printf("[musictools] board=%d panel=%dx%d sprite=%d spk=%d\n", (int)M5.getBoard(),
                   (int)M5.Display.width(), (int)M5.Display.height(), uiHasCanvas() ? 1 : 0,
                   M5.Speaker.isEnabled() ? 1 : 0);
 
@@ -516,6 +518,7 @@ void loop()
 
     delay(g.metroOn ? 2 : 5);
 }
+
 
 
 

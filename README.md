@@ -1,9 +1,32 @@
-# Cardputer 五度圈 · 和弦查询固件
+<p align="center">
+<img src="docs/icon-128.png" width="96" alt="MusicTools icon">
+</p>
 
-给 M5Stack **Cardputer / Cardputer-Adv** 的乐理查询固件，四个页面，Tab 切换：
+# MusicTools
+
+给 M5Stack **Cardputer / Cardputer-Adv** 的乐理工具箱固件。六个页面，Tab 切换：
 
 | 页面 | 内容 |
 |---|---|
+| **五度圈** | 12 段圆环（外环大调 / 内环关系小调）+ 当前调的 7 个级数和弦 |
+| **和弦查询** | 正查：和弦拼写、音程、属性；反查：这个和弦出现在哪些调、是什么级数 |
+| **吉他指法** | 该和弦的 3 个把位指法图，方向键翻页看更多 |
+| **音阶查询** | 19 种音阶的拼写、级数、12 音位图、音程公式，Enter 试听 |
+| **节拍器** | 40–240 BPM，6 种拍号，强拍重音 |
+| **调音表** | 麦克风收声，显示音名、八度、音分偏差和指针 |
+
+离线、开机即用、按 Enter 直接试听。开机先是 MusicTools 的标志（五度圈圆环），一眼能认出是这个固件。
+
+<p>
+<img src="docs/sim-p0.png" width="380" alt="五度圈页">
+<img src="docs/sim-p1.png" width="380" alt="和弦查询页">
+<img src="docs/sim-p2.png" width="380" alt="吉他指法页">
+<img src="docs/sim-p3.png" width="380" alt="音阶查询页">
+<img src="docs/sim-p4.png" width="380" alt="节拍器页">
+<img src="docs/sim-p5.png" width="380" alt="调音表页">
+</p>
+
+---|---|
 | **五度圈** | 12 段圆环（外环大调 / 内环关系小调）+ 当前调的 7 个级数和弦 |
 | **和弦查询** | 正查：和弦拼写、音程、属性；反查：这个和弦出现在哪些调、是什么级数 |
 | **吉他指法** | 该和弦的 3 个把位指法图，方向键翻页看更多 |
@@ -24,13 +47,13 @@
 
 ## 一、刷机
 
-固件文件：`dist/cardputer-circle-of-fifths-8MB.bin`（**从 0x0 地址烧写**，已合并 bootloader + 分区表 + 应用）
+固件文件：`dist/MusicTools-8MB.bin`（**从 0x0 地址烧写**，已合并 bootloader + 分区表 + 应用）
 
 ### 方式 A：浏览器烧写（推荐，不用装任何环境）
 
 1. 用 Chrome / Edge 打开 <https://espressif.github.io/esptool-js/>
 2. 点 **Connect**，选择 Cardputer 的串口（COMx）
-3. 选择文件 `cardputer-circle-of-fifths-8MB.bin`
+3. 选择文件 `MusicTools-8MB.bin`
 4. **Flash Address 填 `0x0`**
 5. 点 **Program**，等待进度条到 100%
 
@@ -38,7 +61,7 @@
 
 ```bash
 pip install esptool
-esptool.py --chip esp32s3 -p COM3 -b 460800 write_flash 0x0 cardputer-circle-of-fifths-8MB.bin
+esptool.py --chip esp32s3 -p COM3 -b 460800 write_flash 0x0 MusicTools-8MB.bin
 ```
 
 ### 方式 C：M5Burner
@@ -233,6 +256,7 @@ pio run -t upload      # 直接烧写
 
 构建产物：`.pio/build/cardputer/firmware.bin`（应用镜像，从 0x10000 烧写）。
 `dist/` 里的合并镜像由 `pwsh tools/make_bin.ps1` 生成。
+图标由 `python tools/make_icon.py` 生成（`docs/icon*.png`）。
 
 依赖：PlatformIO + `espressif32@6.9.0`；库 `M5Unified 0.3.0`、`M5GFX 0.3.0`、`M5Cardputer 1.1.1`（自动安装）。
 

@@ -35,8 +35,10 @@ struct UiState {
 };
 
 void uiBegin();
+void uiSplash();  // boot logo, blocking (call once from setup)
 bool uiHasCanvas();
 void uiRender(const UiState& st);
+
 
 
 
