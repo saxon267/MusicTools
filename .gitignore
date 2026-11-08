@@ -18,10 +18,6 @@ desktop.ini
 __pycache__/
 *.pyc
 
-# other projects that live in this workspace but not in this repo
-/Cardputer_MIDI/
-/Cardputer_MPC/
-/MPC-*.md
-/docs/mpc-*.png
-/tools/make_mpc_diagrams.py
+# upstream reference source, kept for reading only
+/M5Chord_ref/
 

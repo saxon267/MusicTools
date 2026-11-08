@@ -293,7 +293,7 @@ pio run -t upload      # 直接烧写
 | `src/theory.h/.cpp` | 纯 C++ 乐理层，无硬件依赖：音名拼写、音阶、级数和弦、调号、和弦字典、正查/反查 |
 | `src/guitar.h/.cpp` | 指板搜索：音程约束 + 把位打分，输出可弹的指法 |
 | `src/theory.h/.cpp`（音阶表） | 14 种音阶的半音偏移 + 字母级数，用于正确拼写 |
-| `src/ui.h/.cpp` | 240×135 两个页面，全部绘制到 sprite 后一次性推送 |
+| `src/ui.h/.cpp` | 240×135 七个页面，全部绘制到 sprite 后一次性推送 |
 | `src/audio.h/.cpp` | 和弦合成（正弦叠加 + ADSR），16 kHz 单声道，最多 5 个声部 |
 | `src/main.cpp` | 按键边沿检测、页面状态机、和弦输入解析 |
 | `sim/` | 网页模拟器：`theory.js` / `guitar.js` / `ui.js` / `app.js`，逻辑从 C++ 移植 |
@@ -329,20 +329,3 @@ pio run -t upload      # 直接烧写
 MIT，见 [LICENSE](LICENSE)。
 
 界面字体使用 M5GFX 内置的 `Font0` / `Font2` / `Font4` / `FreeSans9pt7b`（Adafruit GFX 字体集，源自 GNU FreeFont，GPLv3 + font exception），随库分发。
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
