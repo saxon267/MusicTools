@@ -409,6 +409,9 @@ void setup()
     g.selDegree  = 4;  // the V chord is a useful default
     g.battery    = M5.Power.getBatteryLevel();
     metroInit();
+    g.modTo       = 1;
+    g.modMinor    = false;
+
     g.progView    = 0;
     g.progStyle   = 0;
     g.progSel     = 0;
@@ -471,7 +474,7 @@ void loop()
     if (fireTab || fireLeft || fireRight || fireUp || fireDown || fireDel) gDirty = true;
 
     if (fireTab) {
-        g.page = (g.page + 1) % 6;
+        g.page = (g.page + 1) % 7;
         if (g.page == 1) seedChordFromSelection();
         if (g.page != 5 && g.progPlaying) progStop();
     }
@@ -504,8 +507,7 @@ void loop()
         if (fireUp) g.bpm = g.bpm >= 240 ? 240 : g.bpm + 1;
         if (fireDown) g.bpm = g.bpm <= 40 ? 40 : g.bpm - 1;
         if (fireUp || fireDown) g.beat = -1;
-    } else {
-        // progression page
+    } else if (g.page == 5) {
         if (g.progView == 0) {
             if (fireUp) g.progStyle = (g.progStyle + kProgStyleCount - 1) % kProgStyleCount;
             if (fireDown) g.progStyle = (g.progStyle + 1) % kProgStyleCount;
@@ -522,6 +524,10 @@ void loop()
             if (fireDown) progStep(1);
         }
         if (fireDel) progBack();
+    } else if (g.page == 6) {
+        if (fireLeft) g.modTo = (g.modTo + 11) % 12;
+        if (fireRight) g.modTo = (g.modTo + 1) % 12;
+        if (fireUp || fireDown) g.modMinor = !g.modMinor;
     }
 
     if (!ks.fn && pollTypedKeys()) gDirty = true;

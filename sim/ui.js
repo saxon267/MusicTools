@@ -456,19 +456,19 @@ const UI = (() => {
   // ----------------------------------------------------------------
 
   const drawTabs = (st) => {
-    const names = ['CIRCLE', 'CHORD', 'GUITAR', 'SCALE', 'TEMPO', 'PROG'];
+    const names = ['CIRC', 'CHORD', 'SHAPE', 'SCALE', 'TEMPO', 'PROG', 'MOD'];
     const d = C.ctx;
-    for (let i = 0; i < 6; i++) {
-      const x = i * 40;
+    for (let i = 0; i < 7; i++) {
+      const x = (i * 240) / 7;
       const on = i === st.page;
       if (on) {
         d.fillStyle = COL.selBg;
         d.beginPath();
-        d.roundRect(x + 1, 2, 38, 9, 2);
+        d.roundRect(x + 1, 2, 32, 9, 2);
         d.fill();
       }
       const w = measure(names[i], F_TINY);
-      textTL(x + (40 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#58626f');
+      textTL(x + (34 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#58626f');
     }
     d.strokeStyle = COL.line;
     d.beginPath();
@@ -634,6 +634,38 @@ const UI = (() => {
     textTL(W - 6 - measure(pos, F_TINY), 96, pos, F_TINY, COL.dim);
   };
 
+
+  // ---------------------------------------------------------------- page 6
+
+  const drawModPage = (st) => {
+    const d = C.ctx;
+    const info = MOD.analyse(st.slot, st.modTo, st.modMinor);
+
+    const fromName = MT.noteName(MT.majorTonic(st.slot));
+    const toName = MOD.chordName(info.toTonic, 0) + (info.toMinor ? 'm' : '');
+    textTL(6, 12, `${fromName}  >  ${toName}`, F_MID, COL.fg);
+    textTL(W - 6 - measure(info.relation, F_TINY), 18, info.relation, F_TINY, COL.accent);
+
+    const ad = Math.abs(info.distance);
+    textTL(6, 30, `${ad} fifth${ad === 1 ? '' : 's'} apart`, F_TINY, COL.dim);
+
+    if (!info.pivots.length) textTL(6, 44, 'no shared triad', F_TINY, COL.dim);
+    info.pivots.slice(0, 4).forEach((pv, i) => {
+      const y = 44 + i * 13;
+      textTL(10, y, MOD.chordName(pv.root, pv.qual), F_MID, COL.fg);
+      const fn = `${MT.romanNumeral(pv.fromDeg, false)} > ${MT.romanNumeral(pv.toDeg, info.toMinor)}`;
+      textTL(66, y + 5, fn, F_TINY, COL.dim);
+    });
+
+    const dom = MOD.chordName(info.domRoot, 0) + '7';
+    textTL(8, 100, 'V7', F_TINY, COL.dim);
+    textTL(38, 100, `${dom}  >  ${toName}`, F_TINY, COL.accent);
+
+    const ii = MOD.chordName(info.iiRoot, 0) + 'm7';
+    textTL(8, 112, 'ii-V', F_TINY, COL.dim);
+    textTL(38, 112, `${ii} ${dom}  >  ${toName}`, F_TINY, COL.panelChord);
+  };
+
   const drawVolumeBar = (st) => {
     if (!st.showVolume) return;
     const d = C.ctx;
@@ -670,7 +702,8 @@ const UI = (() => {
       'TAB scale  Fn+<> voice  ^v type',
       'TAB tempo  Fn+<> root ^v ENTER',
       'TAB prog  Fn+<> tempo  ^v style',
-      'TAB circle  Fn+<> move  ^v pick',
+      'TAB mod  Fn+<> move  ^v pick',
+      'TAB circ  Fn+<> target  ^v maj/min',
     ];
     const d = C.ctx;
     d.strokeStyle = COL.line;
@@ -679,7 +712,7 @@ const UI = (() => {
     d.lineTo(W - 4, 124);
     d.stroke();
 
-    textTL(5, 125, hints[st.page % 6], F_TINY, COL.footer);
+    textTL(5, 125, hints[st.page % 7], F_TINY, COL.footer);
 
     const bat = st.battery < 0 ? '--' : `${st.battery}%`;
     const w = measure(bat, F_TINY);
@@ -745,7 +778,8 @@ const UI = (() => {
     else if (st.page === 2) drawGuitarPage(st);
     else if (st.page === 3) drawScalePage(st);
     else if (st.page === 4) drawMetroPage(st);
-    else drawProgPage(st);
+    else if (st.page === 5) drawProgPage(st);
+    else drawModPage(st);
 
     drawVolumeBar(st);
     drawFooter(st);

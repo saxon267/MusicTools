@@ -6,6 +6,7 @@
 #include <cstring>
 
 #include "guitar.h"
+#include "modulation.h"
 #include "metronome.h"
 #include "theory.h"
 
@@ -742,6 +743,73 @@ void drawProgPage(LovyanGFX* d, const UiState& st)
     textTL(d, kW - 6 - d->textWidth(pos), 96, pos, &fonts::Font0, kDim);
 }
 
+
+// ---------------------------------------------------------------------------
+// page 6: modulation helper
+// ---------------------------------------------------------------------------
+
+const char* modChordName(const mt::Note& root, uint8_t qual)
+{
+    static const char* kSuffix[3] = {"", "m", "dim"};
+    char               nm[4];
+    mt::noteName(root, nm);
+    static char buf[8];
+    snprintf(buf, sizeof buf, "%s%s", nm, kSuffix[qual % 3]);
+    return buf;
+}
+
+void drawModPage(LovyanGFX* d, const UiState& st)
+{
+    ModInfo info;
+    modAnalyse(st.slot, st.modTo, st.modMinor, info);
+
+    char kn[4];
+    char tk[8];
+    char hb[20];
+    mt::noteName(mt::majorTonic(st.slot), kn);
+    snprintf(tk, sizeof tk, "%s%s", modChordName(info.toTonic, 0), info.toMinor ? "m" : "");
+    snprintf(hb, sizeof hb, "%s  >  %s", kn, tk);
+    textTL(d, 6, 12, hb, &fonts::Font2, kFg);
+
+    d->setFont(&fonts::Font0);
+    textTL(d, kW - 6 - d->textWidth(info.relation), 18, info.relation, &fonts::Font0, kAccent);
+
+    char dist[24];
+    const int ad = info.distance < 0 ? -info.distance : info.distance;
+    snprintf(dist, sizeof dist, "%d fifth%s apart", ad, ad == 1 ? "" : "s");
+    textTL(d, 6, 30, dist, &fonts::Font0, kDim);
+
+    // pivot chords with their function in both keys
+    if (info.nPivot == 0) {
+        textTL(d, 6, 44, "no shared triad", &fonts::Font0, kDim);
+    }
+    const int  shown = info.nPivot > 4 ? 4 : info.nPivot;
+    for (int i = 0; i < shown; ++i) {
+        const Pivot& pv = info.pivots[i];
+        const int    y  = 44 + i * 13;
+
+        char cn[8];
+        snprintf(cn, sizeof cn, "%s%s", modChordName(pv.root, pv.qual), "");
+        textTL(d, 10, y, cn, &fonts::Font2, kFg);
+
+        char fn[16];
+        snprintf(fn, sizeof fn, "%s > %s", mt::romanNumeral(pv.fromDeg, false),
+                 mt::romanNumeral(pv.toDeg, info.toMinor));
+        textTL(d, 66, y + 5, fn, &fonts::Font0, kDim);
+    }
+
+    // the two moves that always work
+    char line[24];
+    snprintf(line, sizeof line, "%s7  >  %s", modChordName(info.domRoot, 0), tk);
+    textTL(d, 8, 100, "V7", &fonts::Font0, kDim);
+    textTL(d, 38, 100, line, &fonts::Font0, kAccent);
+
+    snprintf(line, sizeof line, "%sm7 %s7  >  %s", modChordName(info.iiRoot, 0),
+             modChordName(info.domRoot, 0), tk);
+    textTL(d, 8, 112, "ii-V", &fonts::Font0, kDim);
+    textTL(d, 38, 112, line, &fonts::Font0, rgb(200, 210, 224));
+}
+
 // ---------------------------------------------------------------------------
 // Transient bar shown for a moment after the volume keys are used.
 void drawVolumeBar(LovyanGFX* d, const UiState& st)
@@ -765,16 +833,16 @@ void drawVolumeBar(LovyanGFX* d, const UiState& st)
 
 void drawTabs(LovyanGFX* d, const UiState& st)
 {
-    static const char* kNames[6] = {"CIRCLE", "CHORD", "GUITAR", "SCALE", "TEMPO", "PROG"};
-    for (int i = 0; i < 6; ++i) {
-        const int  x  = i * 40;
+    static const char* kNames[7] = {"CIRC", "CHORD", "SHAPE", "SCALE", "TEMPO", "PROG", "MOD"};
+    for (int i = 0; i < 7; ++i) {
+        const int  x  = (i * 240) / 7;
         const bool on = (i == st.page);
         if (on) {
-            d->fillRoundRect(x + 1, 2, 38, 9, 2, kSelBg);
+            d->fillRoundRect(x + 1, 2, 32, 9, 2, kSelBg);
         }
         d->setFont(&fonts::Font0);
         const int w = d->textWidth(kNames[i]);
-        textTL(d, x + (40 - w) / 2, 3, kNames[i], &fonts::Font0,
+        textTL(d, x + (34 - w) / 2, 3, kNames[i], &fonts::Font0,
                on ? kFg : rgb(88, 98, 112));
     }
     d->drawFastHLine(0, kTabH, kW, kLine);
@@ -782,16 +850,17 @@ void drawTabs(LovyanGFX* d, const UiState& st)
 
 void drawFooter(LovyanGFX* d, const UiState& st)
 {
-    static const char* kHints[6] = {
+    static const char* kHints[7] = {
         "TAB chord  Fn+<> key  ^v  ENTER",
-        "TAB guitar  Fn+<> root  ^v type",
+        "TAB shape  Fn+<> root  ^v type",
         "TAB scale  Fn+<> voice  ^v type",
         "TAB tempo  Fn+<> root ^v ENTER",
         "TAB prog  Fn+<> tempo  ^v style",
-        "TAB circle  Fn+<> move  ^v pick",
+        "TAB mod  Fn+<> move  ^v pick",
+        "TAB circ  Fn+<> target  ^v maj/min",
     };
     d->drawFastHLine(4, 124, kW - 8, kLine);
-    textTL(d, 5, 126, kHints[st.page % 6], &fonts::Font0, rgb(104, 116, 132));
+    textTL(d, 5, 126, kHints[st.page % 7], &fonts::Font0, rgb(104, 116, 132));
 
     char bat[8];
     if (st.battery < 0) {
@@ -868,8 +937,10 @@ void uiRender(const UiState& st)
         drawScalePage(d, st);
     } else if (st.page == 4) {
         drawMetroPage(d, st);
-    } else {
+    } else if (st.page == 5) {
         drawProgPage(d, st);
+    } else {
+        drawModPage(d, st);
     }
     drawVolumeBar(d, st);
     drawFooter(d, st);

@@ -4,7 +4,7 @@
 
 # MusicTools
 
-给 M5Stack **Cardputer / Cardputer-Adv** 的乐理工具箱固件。六个页面，Tab 切换：
+给 M5Stack **Cardputer / Cardputer-Adv** 的乐理工具箱固件。七个页面，Tab 切换：
 
 | 页面 | 内容 |
 |---|---|
@@ -14,6 +14,7 @@
 | **音阶查询** | 19 种音阶的拼写、级数、12 音位图、音程公式，Enter 试听 |
 | **节拍器** | 40–240 BPM，6 种拍号，强拍重音 |
 | **和弦进行** | 6 种风格 17 条经典进行 + 自定义 4 小节，跟随节拍器自动走和弦 |
+| **转调查询** | 从当前调转到任意目标调的方案：共同和弦、两调功能、V7 / ii-V 走法 |
 
 离线、开机即用、按 Enter 直接试听。开机先是 MusicTools 的标志（五度圈圆环），一眼能认出是这个固件。
 
@@ -24,6 +25,7 @@
 <img src="docs/sim-p3.png" width="380" alt="音阶查询页">
 <img src="docs/sim-p4.png" width="380" alt="节拍器页">
 <img src="docs/sim-prog.png" width="380" alt="和弦进行页">
+<img src="docs/sim-mod.png" width="380" alt="转调查询页">
 </p>
 
 ---
@@ -129,6 +131,18 @@ M5Burner → 选择设备 → **Custom** / 本地固件 → 选 bin → 烧录�
 内置 17 条：POP 4、ROCK 3、JAZZ 4、BLUES 2、CLASSICAL 3、FOLK 3，外加 CUSTOM。进行跟着节拍器的拍号走，每小节换一个和弦，当前和弦会响一次，槽位里的小圆点显示当前拍。
 
 CUSTOM 是 4 个槽位，`Fn+;` / `Fn+/` 改当前槽位的级数（按当前调自然音阶循环），`Fn+,` / `Fn+.` 换槽位，`Enter` 播放。
+
+### 转调查询页
+
+以五度圈当前调为起点，`Fn+,` / `Fn+.` 换目标调，`Fn+;` / `Fn+/` 切换目标是大调还是关系小调。
+
+页面给出三件事：
+
+- **关系与距离**：属调 / 下属调 / 二度 / 远关系，以及相隔几个五度
+- **共同和弦**：两调共有的三和弦，以及它在两个调里各自是第几级（`Am  vi > ii` 就是"在 C 里是 vi，在 G 里是 ii"）
+- **两条永远能用的走法**：目标调的 `V7`，以及 `ii-V`
+
+远关系调没有共同三和弦时会明确写 `no shared triad`，这时只能靠副属和弦或直接跳转。
 
 ### 声音
 
@@ -293,6 +307,7 @@ pio run -t upload      # 直接烧写
 MIT，见 [LICENSE](LICENSE)。
 
 界面字体使用 M5GFX 内置的 `Font0` / `Font2` / `Font4` / `FreeSans9pt7b`（Adafruit GFX 字体集，源自 GNU FreeFont，GPLv3 + font exception），随库分发。
+
 
 
 

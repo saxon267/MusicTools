@@ -30,6 +30,8 @@ const App = (() => {
     progMinor: false,
     progSteps: [],
     progName: '',
+    modTo: 1,
+    modMinor: false,
 
     volume: 100,
     showVolume: false,
@@ -289,7 +291,7 @@ const App = (() => {
   // ---------------------------------------------------------------- actions
 
   const nextPage = () => {
-    st.page = (st.page + 1) % 6;
+    st.page = (st.page + 1) % 7;
     if (st.page !== 5 && st.progPlaying) progStop();
     if (st.page === 1) seedChordFromSelection();
   };
@@ -346,7 +348,7 @@ const App = (() => {
         else if (st.page === 4) changePattern(-1);
         else if (st.page === 5 && st.progView === 2 && st.progEdit) {
           st.progSlot = (st.progSlot + st.progSteps.length - 1) % st.progSteps.length;
-        }
+        } else if (st.page === 6) st.modTo = (st.modTo + 11) % 12;
         break;
       case 'right':
         if (st.page === 0) moveSlot(1);
@@ -356,7 +358,7 @@ const App = (() => {
         else if (st.page === 4) changePattern(1);
         else if (st.page === 5 && st.progView === 2 && st.progEdit) {
           st.progSlot = (st.progSlot + 1) % st.progSteps.length;
-        }
+        } else if (st.page === 6) st.modTo = (st.modTo + 1) % 12;
         break;
       case 'up':
         if (st.page === 0) moveDegree(-1);
@@ -397,7 +399,7 @@ const App = (() => {
 
   // ---------------------------------------------------------------- view
 
-  const pageNames = ['五度圈', '和弦查询', '吉他指法', '音阶', '节拍器', '和弦进行'];
+  const pageNames = ['五度圈', '和弦查询', '吉他指法', '音阶', '节拍器', '和弦进行', '转调'];
 
   const refresh = () => {
     UI.render(st, canvas);
@@ -416,11 +418,14 @@ const App = (() => {
       detail = `${MT.noteName(st.scaleRoot)} ${MT.SCALE_TYPES[st.scaleType].name}`;
     } else if (st.page === 4) {
       detail = `${st.bpm} BPM · ${UI.METRO[st.metroPattern].name}${st.metroOn ? ' · 运行中' : ''}`;
-    } else {
+    } else if (st.page === 5) {
       const view = ['风格', '进行', '播放'][st.progView];
       detail = `${view} · ${st.progName || PROG.STYLES[st.progStyle].name}`;
+    } else {
+      const info = MOD.analyse(st.slot, st.modTo, st.modMinor);
+      detail = `${MT.noteName(info.toTonic)}${info.toMinor ? 'm' : ''} · ${info.relation}`;
     }
-    el.textContent = `${st.page + 1}/6 ${pageNames[st.page]} — ${detail}${st.playing ? ' · 播放中' : ''}`;
+    el.textContent = `${st.page + 1}/7 ${pageNames[st.page]} — ${detail}${st.playing ? ' · 播放中' : ''}`;
   };
 
   const keyMap = {
@@ -437,9 +442,10 @@ const App = (() => {
   // deep links for testing: index.html#page=2&chord=G7&scale=11&key=7
   const applyHash = () => {
     const h = new URLSearchParams(location.hash.replace('#', ''));
-    if (h.has('page')) st.page = Math.max(0, Math.min(5, Number(h.get('page')) || 0));
+    if (h.has('page')) st.page = Math.max(0, Math.min(6, Number(h.get('page')) || 0));
     if (h.has('bpm')) st.bpm = Math.max(40, Math.min(240, Number(h.get('bpm')) || 100));
     if (h.has('key')) st.slot = MT.imod(Number(h.get('key')) || 0, 12);
+    if (h.has('mod')) st.modTo = MT.imod(Number(h.get('mod')) || 0, 12);
     if (h.has('prog')) {
       progLoadPreset(Number(h.get('prog')) || 0, Number(h.get('item')) || 0);
     }
@@ -500,6 +506,7 @@ const App = (() => {
 
   return { init, refresh, state: st };
 })();
+
 
 
 

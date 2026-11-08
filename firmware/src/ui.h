@@ -42,6 +42,10 @@ struct UiState {
     const ProgStep* progSteps;
     int             progLen;
     const char*     progName;
+
+    // modulation page
+    int  modTo;     // target ring slot
+    bool modMinor;  // target is the relative minor of that slot
 };
 
 void uiBegin();
