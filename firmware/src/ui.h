@@ -46,6 +46,7 @@ struct UiState {
     // modulation page
     int  modTo;     // target ring slot
     bool modMinor;  // target is the relative minor of that slot
+    int  modFocus;  // 0 edits the source key, 1 the target
 };
 
 void uiBegin();

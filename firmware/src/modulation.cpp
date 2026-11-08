@@ -13,13 +13,16 @@ uint8_t qualityOf(int degree, bool minor)
 
 }  // namespace
 
-void modAnalyse(int fromSlot, int toSlot, bool toMinor, ModInfo& out)
+void modAnalyse(int fromSlot, bool fromMinor, int toSlot, bool toMinor, ModInfo& out)
 {
     memset(&out, 0, sizeof out);
 
-    const mt::Note fromTonic = mt::majorTonic(fromSlot);
-    mt::Note       toTonic   = mt::majorTonic(toSlot);
+    mt::Note fromTonic = mt::majorTonic(fromSlot);
+    if (fromMinor) fromTonic = mt::relativeMinorOf(fromTonic);
+    mt::Note toTonic = mt::majorTonic(toSlot);
     if (toMinor) toTonic = mt::relativeMinorOf(toTonic);
+
+    out.fromTonic = fromTonic;
 
     int diff = mt::imod(toSlot - fromSlot, 12);
     if (diff > 6) diff -= 12;
@@ -28,7 +31,11 @@ void modAnalyse(int fromSlot, int toSlot, bool toMinor, ModInfo& out)
     out.toMinor  = toMinor;
 
     if (diff == 0) {
-        out.relation = toMinor ? "REL MINOR" : "SAME KEY";
+        if (fromMinor == toMinor) {
+            out.relation = "SAME KEY";
+        } else {
+            out.relation = toMinor ? "REL MINOR" : "REL MAJOR";
+        }
     } else if (diff == 1) {
         out.relation = "DOMINANT";
     } else if (diff == -1) {
@@ -42,13 +49,13 @@ void modAnalyse(int fromSlot, int toSlot, bool toMinor, ModInfo& out)
     }
 
     // pivot chords: triads that exist in both keys with the same quality
-    const mt::Scale fromScale = mt::scaleOf(fromTonic, false);
+    const mt::Scale fromScale = mt::scaleOf(fromTonic, fromMinor);
     const mt::Scale toScale   = mt::scaleOf(toTonic, toMinor);
 
     for (int a = 0; a < 7; ++a) {
         for (int b = 0; b < 7; ++b) {
             if (mt::pitchClass(fromScale.notes[a]) != mt::pitchClass(toScale.notes[b])) continue;
-            if (qualityOf(a, false) != qualityOf(b, toMinor)) continue;
+            if (qualityOf(a, fromMinor) != qualityOf(b, toMinor)) continue;
             if (out.nPivot >= 7) break;
             Pivot& p   = out.pivots[out.nPivot++];
             p.root     = toScale.notes[b];

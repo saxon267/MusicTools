@@ -32,6 +32,7 @@ const App = (() => {
     progName: '',
     modTo: 1,
     modMinor: false,
+    modFocus: 1,
 
     volume: 100,
     showVolume: false,
@@ -348,7 +349,10 @@ const App = (() => {
         else if (st.page === 4) changePattern(-1);
         else if (st.page === 5 && st.progView === 2 && st.progEdit) {
           st.progSlot = (st.progSlot + st.progSteps.length - 1) % st.progSteps.length;
-        } else if (st.page === 6) st.modTo = (st.modTo + 11) % 12;
+        } else if (st.page === 6) {
+          if (st.modFocus === 0) st.slot = (st.slot + 11) % 12;
+          else st.modTo = (st.modTo + 11) % 12;
+        }
         break;
       case 'right':
         if (st.page === 0) moveSlot(1);
@@ -358,7 +362,10 @@ const App = (() => {
         else if (st.page === 4) changePattern(1);
         else if (st.page === 5 && st.progView === 2 && st.progEdit) {
           st.progSlot = (st.progSlot + 1) % st.progSteps.length;
-        } else if (st.page === 6) st.modTo = (st.modTo + 1) % 12;
+        } else if (st.page === 6) {
+          if (st.modFocus === 0) st.slot = (st.slot + 1) % 12;
+          else st.modTo = (st.modTo + 1) % 12;
+        }
         break;
       case 'up':
         if (st.page === 0) moveDegree(-1);
@@ -373,7 +380,8 @@ const App = (() => {
         else changeBpm(-1);
         break;
       case 'enter':
-        if (st.page === 5) progEnter();
+        if (st.page === 6) st.modFocus = 1 - st.modFocus;
+        else if (st.page === 5) progEnter();
         else togglePlay();
         break;
       case 'back':
@@ -422,7 +430,7 @@ const App = (() => {
       const view = ['风格', '进行', '播放'][st.progView];
       detail = `${view} · ${st.progName || PROG.STYLES[st.progStyle].name}`;
     } else {
-      const info = MOD.analyse(st.slot, st.modTo, st.modMinor);
+      const info = MOD.analyse(st.slot, st.minorView, st.modTo, st.modMinor);
       detail = `${MT.noteName(info.toTonic)}${info.toMinor ? 'm' : ''} · ${info.relation}`;
     }
     el.textContent = `${st.page + 1}/7 ${pageNames[st.page]} — ${detail}${st.playing ? ' · 播放中' : ''}`;

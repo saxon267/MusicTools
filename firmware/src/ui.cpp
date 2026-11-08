@@ -34,15 +34,16 @@ constexpr uint16_t rgb(uint8_t r, uint8_t g, uint8_t b)
     return (uint16_t)(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3));
 }
 
-constexpr uint16_t kBg       = rgb(14, 17, 22);
-constexpr uint16_t kFg       = rgb(232, 236, 241);
-constexpr uint16_t kDim      = rgb(132, 144, 158);
-constexpr uint16_t kLine     = rgb(40, 47, 58);
-constexpr uint16_t kSelBg    = rgb(38, 46, 58);
-constexpr uint16_t kHubBg    = rgb(20, 24, 30);
-constexpr uint16_t kInk      = rgb(16, 18, 22);
-constexpr uint16_t kChordDim = rgb(120, 132, 148);
-constexpr uint16_t kAccent   = rgb(150, 178, 208);
+// GruvBox Dark
+constexpr uint16_t kBg       = rgb(40, 40, 40);    // bg0
+constexpr uint16_t kFg       = rgb(235, 219, 178); // fg1
+constexpr uint16_t kDim      = rgb(146, 131, 116); // gray
+constexpr uint16_t kLine     = rgb(80, 73, 69);    // bg2
+constexpr uint16_t kSelBg    = rgb(60, 56, 54);    // bg1
+constexpr uint16_t kHubBg    = rgb(29, 32, 33);    // bg0 hard
+constexpr uint16_t kInk      = rgb(40, 40, 40);    // text on bright fills
+constexpr uint16_t kChordDim = rgb(168, 153, 132);// fg4
+constexpr uint16_t kAccent   = rgb(250, 189, 47);  // yellow
 
 M5Canvas* gCanvas = nullptr;
 
@@ -149,9 +150,9 @@ void drawWheel(LovyanGFX* d, const UiState& st)
         const float a1  = a0 + 30.0f - 1.4f;
 
         fillSeg(d, kCx, kCy, kRMajIn, kROut, a0, a1,
-                sel ? hueColor(i * 30.0f, 0.95f, 0.96f) : hueColor(i * 30.0f, 0.45f, 0.90f));
+                sel ? hueColor(i * 30.0f, 0.80f, 0.86f) : hueColor(i * 30.0f, 0.42f, 0.74f));
         fillSeg(d, kCx, kCy, kRMinIn, kRMajIn, a0, a1,
-                sel ? hueColor(i * 30.0f, 0.85f, 0.60f) : hueColor(i * 30.0f, 0.42f, 0.50f));
+                sel ? hueColor(i * 30.0f, 0.75f, 0.55f) : hueColor(i * 30.0f, 0.38f, 0.42f));
 
         if (sel) {
             outlineSeg(d, kCx, kCy, kRMajIn, kROut, a0, a1, TFT_WHITE);
@@ -170,7 +171,7 @@ void drawWheel(LovyanGFX* d, const UiState& st)
             if (*p >= 'A' && *p <= 'G') *p = (char)(*p - 'A' + 'a');
         }
         textMid(d, kCx + (int)(31.0f * cosf(am)), kCy + (int)(31.0f * sinf(am)), min, &fonts::Font0,
-                sel ? TFT_WHITE : rgb(228, 232, 238));
+                sel ? TFT_WHITE : rgb(213, 196, 161));
     }
 
     d->fillCircle(kCx, kCy, kRHub, kHubBg);
@@ -236,7 +237,7 @@ void drawPanel(LovyanGFX* d, const UiState& st)
 
         char cn[8];
         chordName(chords[i], cn);
-        textML(d, kPanelX + 25, y + 6, cn, &fonts::FreeSans9pt7b, sel ? kFg : rgb(210, 218, 228));
+        textML(d, kPanelX + 25, y + 6, cn, &fonts::FreeSans9pt7b, sel ? kFg : rgb(235, 219, 178));
 
         char notes[12];
         int  m = 0;
@@ -262,7 +263,7 @@ void drawChordPage(LovyanGFX* d, const UiState& st)
         textTL(d, 6, 16, "?", &fonts::Font4, kDim);
         textTL(d, 6, 52, "unknown chord", &fonts::Font0, kDim);
         textTL(d, 6, 64, "keep typing", &fonts::Font0, kDim);
-        textTL(d, 6, 100, "ENTER: play", &fonts::Font0, rgb(96, 106, 120));
+        textTL(d, 6, 100, "ENTER: play", &fonts::Font0, rgb(146, 131, 116));
         return;
     }
 
@@ -303,8 +304,8 @@ void drawChordPage(LovyanGFX* d, const UiState& st)
         textTL(d, 6, 82, rb, &fonts::Font0, kAccent);
     }
 
-    textTL(d, 6, 100, "ENTER: play", &fonts::Font0, rgb(96, 106, 120));
-    textTL(d, 6, 110, "BACKSPACE: edit", &fonts::Font0, rgb(84, 94, 108));
+    textTL(d, 6, 100, "ENTER: play", &fonts::Font0, rgb(146, 131, 116));
+    textTL(d, 6, 110, "BACKSPACE: edit", &fonts::Font0, rgb(124, 111, 100));
 
     // right column: the same chord seen from every key
     d->drawFastVLine(120, 14, 108, kLine);
@@ -369,14 +370,14 @@ void drawChordBox(LovyanGFX* d, int x, int y, const Fingering& f)
     const int bottom = y + nFrets * dy;
 
     for (int i = 0; i < 5; ++i) {
-        d->drawFastVLine(x + i * dx, y, nFrets * dy, rgb(64, 72, 86));
+        d->drawFastVLine(x + i * dx, y, nFrets * dy, rgb(80, 73, 69));
     }
     for (int j = 0; j <= nFrets; ++j) {
-        d->drawFastHLine(x, y + j * dy, 5 * dx, rgb(64, 72, 86));
+        d->drawFastHLine(x, y + j * dy, 5 * dx, rgb(80, 73, 69));
     }
 
     if (first == 1) {
-        d->fillRect(x - 1, y - 1, 5 * dx + 2, 3, rgb(150, 160, 176));
+        d->fillRect(x - 1, y - 1, 5 * dx + 2, 3, rgb(168, 153, 132));
     } else {
         char b[8];
         snprintf(b, sizeof b, "%dfr", first);
@@ -517,7 +518,7 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
         char      nm[4];
         noteName(notes[i], nm);
         // every pitch class owns a hue, so the scale reads as a slice of a rainbow
-        textMid(d, cx, 44, nm, &fonts::Font2, hueColor(pitchClass(notes[i]) * 30.0f, 0.55f, 0.95f));
+        textMid(d, cx, 44, nm, &fonts::Font2, hueColor(pitchClass(notes[i]) * 30.0f, 0.50f, 0.85f));
 
         char deg[4];
         int  k = 0;
@@ -546,9 +547,9 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
             if (pitchClass(notes[i]) == pc) deg = i;
         }
         if (deg >= 0) {
-            d->fillRoundRect(x, 62, 16, 26, 2, hueColor(pc * 30.0f, 0.82f, 0.72f));
+            d->fillRoundRect(x, 62, 16, 26, 2, hueColor(pc * 30.0f, 0.62f, 0.62f));
         } else {
-            d->drawRoundRect(x, 62, 16, 26, 2, hueColor(pc * 30.0f, 0.45f, 0.20f));
+            d->drawRoundRect(x, 62, 16, 26, 2, hueColor(pc * 30.0f, 0.35f, 0.26f));
         }
 
         // inside the scale use the spelled tone (F#, not Gb), outside fall back
@@ -558,7 +559,7 @@ void drawScalePage(LovyanGFX* d, const UiState& st)
         } else {
             noteName(pcToNote(pc, prefFlat), b);
         }
-        textMid(d, x + 8, 70, b, &fonts::Font0, deg >= 0 ? kInk : rgb(88, 98, 112));
+        textMid(d, x + 8, 70, b, &fonts::Font0, deg >= 0 ? kInk : rgb(124, 111, 100));
 
         if (deg >= 0) {
             char dg[4];
@@ -606,16 +607,16 @@ void drawMetroPage(LovyanGFX* d, const UiState& st)
         const bool on    = (st.beat == i);
         const bool first = (p.accents & (1u << i)) != 0;
         if (on) {
-            d->fillCircle(x, 58, 7, first ? rgb(230, 120, 90) : kAccent);
+            d->fillCircle(x, 58, 7, first ? rgb(251, 73, 52) : kAccent);
         } else {
-            d->drawCircle(x, 58, 6, first ? rgb(120, 70, 60) : rgb(70, 80, 96));
+            d->drawCircle(x, 58, 6, first ? rgb(106, 58, 47) : rgb(80, 73, 69));
         }
     }
 
     textTL(d, 12, 76, st.metroOn ? "PLAYING" : "STOPPED", &fonts::Font0,
-           st.metroOn ? rgb(120, 200, 140) : kDim);
-    textTL(d, 12, 90, "ENTER: start / stop", &fonts::Font0, rgb(96, 106, 120));
-    textTL(d, 12, 100, "Fn+<> tempo   Fn+^v style", &fonts::Font0, rgb(96, 106, 120));
+           st.metroOn ? rgb(184, 187, 38) : kDim);
+    textTL(d, 12, 90, "ENTER: start / stop", &fonts::Font0, rgb(146, 131, 116));
+    textTL(d, 12, 100, "Fn+<> tempo   Fn+^v style", &fonts::Font0, rgb(146, 131, 116));
 }
 
 // ---------------------------------------------------------------------------
@@ -715,14 +716,14 @@ void drawProgPage(LovyanGFX* d, const UiState& st)
                 if (on) {
                     d->fillCircle(dotX + b * dotGap, 32, 2, kAccent);
                 } else {
-                    d->drawCircle(dotX + b * dotGap, 32, 2, rgb(70, 80, 96));
+                    d->drawCircle(dotX + b * dotGap, 32, 2, rgb(80, 73, 69));
                 }
             }
         }
 
         char label[10];
         progChordLabel(tonic, st.progMinor, st.progSteps[i], label, sizeof label);
-        textMid(d, x + 27, 52, label, &fonts::Font2, cur ? kFg : rgb(210, 218, 228));
+        textMid(d, x + 27, 52, label, &fonts::Font2, cur ? kFg : rgb(235, 219, 178));
 
         char rom[8];
         progRoman(st.progSteps[i], st.progMinor, rom, sizeof rom);
@@ -730,11 +731,11 @@ void drawProgPage(LovyanGFX* d, const UiState& st)
     }
 
     if (st.progEdit) {
-        textTL(d, 6, 96, "Fn+<> chord   ENTER play", &fonts::Font0, rgb(96, 106, 120));
+        textTL(d, 6, 96, "Fn+<> chord   ENTER play", &fonts::Font0, rgb(146, 131, 116));
     } else {
         textTL(d, 6, 96, st.progPlaying ? "PLAYING" : "STOPPED", &fonts::Font0,
-               st.progPlaying ? rgb(120, 200, 140) : kDim);
-        textTL(d, 70, 96, "ENTER play   BKSP back", &fonts::Font0, rgb(96, 106, 120));
+               st.progPlaying ? rgb(184, 187, 38) : kDim);
+        textTL(d, 70, 96, "ENTER play   BKSP back", &fonts::Font0, rgb(146, 131, 116));
     }
 
     char pos[16];
@@ -761,53 +762,85 @@ const char* modChordName(const mt::Note& root, uint8_t qual)
 void drawModPage(LovyanGFX* d, const UiState& st)
 {
     ModInfo info;
-    modAnalyse(st.slot, st.modTo, st.modMinor, info);
+    modAnalyse(st.slot, st.minorView, st.modTo, st.modMinor, info);
 
-    char kn[4];
-    char tk[8];
-    char hb[20];
-    mt::noteName(mt::majorTonic(st.slot), kn);
-    snprintf(tk, sizeof tk, "%s%s", modChordName(info.toTonic, 0), info.toMinor ? "m" : "");
-    snprintf(hb, sizeof hb, "%s  >  %s", kn, tk);
-    textTL(d, 6, 12, hb, &fonts::Font2, kFg);
+    char sn[6];
+    char tn[6];
+    snprintf(sn, sizeof sn, "%s%s", modChordName(info.fromTonic, 0), st.minorView ? "m" : "");
+    snprintf(tn, sizeof tn, "%s%s", modChordName(info.toTonic, 0), st.modMinor ? "m" : "");
+
+    // the two keys as chips, the focused one is filled
+    const bool srcOn = (st.modFocus == 0);
+    d->fillRoundRect(6, 12, 40, 18, 3, srcOn ? kSelBg : kBg);
+    d->drawRoundRect(6, 12, 40, 18, 3, srcOn ? kAccent : kLine);
+    textMid(d, 26, 21, sn, &fonts::Font2, srcOn ? kAccent : kDim);
+
+    textMid(d, 52, 21, ">", &fonts::Font0, kDim);
+
+    d->fillRoundRect(60, 12, 40, 18, 3, srcOn ? kBg : kSelBg);
+    d->drawRoundRect(60, 12, 40, 18, 3, srcOn ? kLine : kAccent);
+    textMid(d, 80, 21, tn, &fonts::Font2, srcOn ? kDim : kAccent);
 
     d->setFont(&fonts::Font0);
-    textTL(d, kW - 6 - d->textWidth(info.relation), 18, info.relation, &fonts::Font0, kAccent);
+    textTL(d, kW - 6 - d->textWidth(info.relation), 18, info.relation, &fonts::Font0, kDim);
 
-    char dist[24];
-    const int ad = info.distance < 0 ? -info.distance : info.distance;
-    snprintf(dist, sizeof dist, "%d fifth%s apart", ad, ad == 1 ? "" : "s");
-    textTL(d, 6, 30, dist, &fonts::Font0, kDim);
-
-    // pivot chords with their function in both keys
-    if (info.nPivot == 0) {
-        textTL(d, 6, 44, "no shared triad", &fonts::Font0, kDim);
+    // twelve slots of the circle, the path between the two keys is filled
+    const int dir = (info.distance >= 0) ? 1 : -1;
+    const int steps = (info.distance >= 0) ? info.distance : -info.distance;
+    for (int i = 0; i < 12; ++i) {
+        const int x = 22 + i * 17;
+        if (i == st.slot) {
+            d->fillCircle(x, 40, 4, kAccent);
+        } else if (i == st.modTo) {
+            d->fillCircle(x, 40, 4, kFg);
+        } else {
+            bool path = false;
+            for (int k = 1; k < steps; ++k) {
+                if ((st.slot + dir * k + 12) % 12 == i) path = true;
+            }
+            if (path) {
+                d->fillCircle(x, 40, 2, kLine);
+            } else {
+                d->drawCircle(x, 40, 2, kLine);
+            }
+        }
     }
-    const int  shown = info.nPivot > 4 ? 4 : info.nPivot;
+
+    // shared chords with the degree in each key
+    char fromHdr[8];
+    char toHdr[8];
+    snprintf(fromHdr, sizeof fromHdr, "in %s", sn);
+    snprintf(toHdr, sizeof toHdr, "in %s", tn);
+    textTL(d, 8, 50, "SHARED", &fonts::Font0, kDim);
+    d->setFont(&fonts::Font0);
+    textTL(d, 172 - d->textWidth(fromHdr), 50, fromHdr, &fonts::Font0, kDim);
+    textTL(d, 232 - d->textWidth(toHdr), 50, toHdr, &fonts::Font0, kDim);
+
+    if (info.nPivot == 0) {
+        textTL(d, 8, 63, "none: use the dominant", &fonts::Font0, rgb(124, 111, 100));
+    }
+    const int shown = info.nPivot > 3 ? 3 : info.nPivot;
     for (int i = 0; i < shown; ++i) {
         const Pivot& pv = info.pivots[i];
-        const int    y  = 44 + i * 13;
+        const int    y  = 63 + i * 12;
 
-        char cn[8];
-        snprintf(cn, sizeof cn, "%s%s", modChordName(pv.root, pv.qual), "");
-        textTL(d, 10, y, cn, &fonts::Font2, kFg);
+        textTL(d, 8, y - 2, modChordName(pv.root, pv.qual), &fonts::Font2, kFg);
 
-        char fn[16];
-        snprintf(fn, sizeof fn, "%s > %s", mt::romanNumeral(pv.fromDeg, false),
-                 mt::romanNumeral(pv.toDeg, info.toMinor));
-        textTL(d, 66, y + 5, fn, &fonts::Font0, kDim);
+        const char* fr = mt::romanNumeral(pv.fromDeg, st.minorView);
+        const char* tr = mt::romanNumeral(pv.toDeg, st.modMinor);
+        d->setFont(&fonts::Font0);
+        textTL(d, 172 - d->textWidth(fr), y + 2, fr, &fonts::Font0, kDim);
+        textTL(d, 232 - d->textWidth(tr), y + 2, tr, &fonts::Font0, kAccent);
     }
 
-    // the two moves that always work
     char line[24];
-    snprintf(line, sizeof line, "%s7  >  %s", modChordName(info.domRoot, 0), tk);
-    textTL(d, 8, 100, "V7", &fonts::Font0, kDim);
-    textTL(d, 38, 100, line, &fonts::Font0, kAccent);
+    snprintf(line, sizeof line, "%s7 > %s", modChordName(info.domRoot, 0), tn);
+    textTL(d, 8, 104, "V7", &fonts::Font0, kDim);
+    textTL(d, 40, 104, line, &fonts::Font0, kAccent);
 
-    snprintf(line, sizeof line, "%sm7 %s7  >  %s", modChordName(info.iiRoot, 0),
-             modChordName(info.domRoot, 0), tk);
-    textTL(d, 8, 112, "ii-V", &fonts::Font0, kDim);
-    textTL(d, 38, 112, line, &fonts::Font0, rgb(200, 210, 224));
+    snprintf(line, sizeof line, "%sm7 %s7 > %s", modChordName(info.iiRoot, 0), modChordName(info.domRoot, 0), tn);
+    textTL(d, 8, 116, "ii-V", &fonts::Font0, kDim);
+    textTL(d, 40, 116, line, &fonts::Font0, kFg);
 }
 
 // ---------------------------------------------------------------------------
@@ -816,12 +849,12 @@ void drawVolumeBar(LovyanGFX* d, const UiState& st)
 {
     if (!st.showVolume) return;
 
-    d->fillRoundRect(8, 98, 224, 20, 5, rgb(26, 32, 42));
-    d->drawRoundRect(8, 98, 224, 20, 5, rgb(60, 72, 90));
+    d->fillRoundRect(8, 98, 224, 20, 5, rgb(60, 56, 54));
+    d->drawRoundRect(8, 98, 224, 20, 5, rgb(80, 73, 69));
     textTL(d, 14, 104, "VOL", &fonts::Font0, kDim);
 
     const int barX = 46, barW = 130, barY = 104, barH = 8;
-    d->fillRoundRect(barX, barY, barW, barH, 4, rgb(18, 22, 28));
+    d->fillRoundRect(barX, barY, barW, barH, 4, rgb(40, 40, 40));
     const int w = (barW * st.volume) / 100;
     if (w > 0) d->fillRoundRect(barX, barY, w, barH, 4, kAccent);
 
@@ -843,7 +876,7 @@ void drawTabs(LovyanGFX* d, const UiState& st)
         d->setFont(&fonts::Font0);
         const int w = d->textWidth(kNames[i]);
         textTL(d, x + (34 - w) / 2, 3, kNames[i], &fonts::Font0,
-               on ? kFg : rgb(88, 98, 112));
+               on ? kFg : rgb(124, 111, 100));
     }
     d->drawFastHLine(0, kTabH, kW, kLine);
 }
@@ -857,10 +890,10 @@ void drawFooter(LovyanGFX* d, const UiState& st)
         "TAB tempo  Fn+<> root ^v ENTER",
         "TAB prog  Fn+<> tempo  ^v style",
         "TAB mod  Fn+<> move  ^v pick",
-        "TAB circ  Fn+<> target  ^v maj/min",
+        "Fn+<> key  ^v mode  ENTER switch",
     };
     d->drawFastHLine(4, 124, kW - 8, kLine);
-    textTL(d, 5, 126, kHints[st.page % 7], &fonts::Font0, rgb(104, 116, 132));
+    textTL(d, 5, 126, kHints[st.page % 7], &fonts::Font0, rgb(146, 131, 116));
 
     char bat[8];
     if (st.battery < 0) {
@@ -871,7 +904,7 @@ void drawFooter(LovyanGFX* d, const UiState& st)
     d->setFont(&fonts::Font0);
     int w = d->textWidth(bat);
     textTL(d, kW - 5 - w, 126, bat, &fonts::Font0,
-           st.audioBusy ? rgb(120, 200, 140) : rgb(104, 116, 132));
+           st.audioBusy ? rgb(184, 187, 38) : rgb(146, 131, 116));
 }
 
 }  // namespace
@@ -885,11 +918,11 @@ void uiSplash()
     for (int i = 0; i < 12; ++i) {
         const float a0 = -105.0f + 30.0f * i + 1.4f;
         const float a1 = a0 + 30.0f - 2.8f;
-        fillSeg(d, cx, cy, 22, 40, a0, a1, hueColor(i * 30.0f, 0.9f, 0.92f));
+        fillSeg(d, cx, cy, 22, 40, a0, a1, hueColor(i * 30.0f, 0.70f, 0.82f));
     }
     outlineSeg(d, cx, cy, 22, 40, -103.6f, -76.4f, TFT_WHITE);  // C at the top
     d->fillCircle(cx, cy, 20, kBg);
-    d->drawCircle(cx, cy, 16, rgb(38, 46, 58));
+    d->drawCircle(cx, cy, 16, rgb(60, 56, 54));
 
     d->setFont(&fonts::Font2);
     d->setTextDatum(textdatum_t::middle_center);
@@ -897,7 +930,7 @@ void uiSplash()
     d->drawString("MusicTools", cx, 97);
 
     d->setFont(&fonts::Font0);
-    d->setTextColor(rgb(120, 132, 148));
+    d->setTextColor(rgb(146, 131, 116));
     d->drawString("CHORDS SCALES TEMPO", cx, 114);
 
     if (gCanvas) gCanvas->pushSprite(0, 0);

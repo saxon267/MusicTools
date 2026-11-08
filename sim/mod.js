@@ -5,8 +5,9 @@ const MOD = (() => {
   const QUAL_MAJOR = [0, 1, 1, 0, 0, 1, 2];
   const QUAL_MINOR = [1, 2, 0, 1, 1, 0, 0];
 
-  const analyse = (fromSlot, toSlot, toMinor) => {
-    const fromTonic = MT.majorTonic(fromSlot);
+  const analyse = (fromSlot, fromMinor, toSlot, toMinor) => {
+    let fromTonic = MT.majorTonic(fromSlot);
+    if (fromMinor) fromTonic = MT.relativeMinorOf(fromTonic);
     let toTonic = MT.majorTonic(toSlot);
     if (toMinor) toTonic = MT.relativeMinorOf(toTonic);
 
@@ -14,26 +15,29 @@ const MOD = (() => {
     if (diff > 6) diff -= 12;
 
     let relation = 'FAR';
-    if (diff === 0) relation = toMinor ? 'REL MINOR' : 'SAME KEY';
+    if (diff === 0) relation = fromMinor === toMinor ? 'SAME KEY' : toMinor ? 'REL MINOR' : 'REL MAJOR';
     else if (diff === 1) relation = 'DOMINANT';
     else if (diff === -1) relation = 'SUBDOMINANT';
     else if (diff === 2) relation = 'UP A 2ND';
     else if (diff === -2) relation = 'DOWN A 2ND';
 
-    const fromScale = MT.scaleOf(fromTonic, false);
+    const fromScale = MT.scaleOf(fromTonic, fromMinor);
     const toScale = MT.scaleOf(toTonic, toMinor);
     const pivots = [];
     for (let a = 0; a < 7; a++) {
       for (let b = 0; b < 7; b++) {
         if (MT.pitchClass(fromScale[a]) !== MT.pitchClass(toScale[b])) continue;
-        if (QUAL_MAJOR[a] !== (toMinor ? QUAL_MINOR[b] : QUAL_MAJOR[b])) continue;
-        pivots.push({ root: toScale[b], qual: toMinor ? QUAL_MINOR[b] : QUAL_MAJOR[b], fromDeg: a, toDeg: b });
+        const fromQ = fromMinor ? QUAL_MINOR[a] : QUAL_MAJOR[a];
+        const toQ = toMinor ? QUAL_MINOR[b] : QUAL_MAJOR[b];
+        if (fromQ !== toQ) continue;
+        pivots.push({ root: toScale[b], qual: toQ, fromDeg: a, toDeg: b });
       }
     }
 
     return {
       distance: diff,
       relation,
+      fromTonic,
       toTonic,
       toMinor,
       pivots,

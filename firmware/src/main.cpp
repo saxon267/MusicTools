@@ -411,6 +411,7 @@ void setup()
     metroInit();
     g.modTo       = 1;
     g.modMinor    = false;
+    g.modFocus    = 1;
 
     g.progView    = 0;
     g.progStyle   = 0;
@@ -525,9 +526,21 @@ void loop()
         }
         if (fireDel) progBack();
     } else if (g.page == 6) {
-        if (fireLeft) g.modTo = (g.modTo + 11) % 12;
-        if (fireRight) g.modTo = (g.modTo + 1) % 12;
-        if (fireUp || fireDown) g.modMinor = !g.modMinor;
+        if (fireLeft || fireRight) {
+            const int delta = fireRight ? 1 : 11;
+            if (g.modFocus == 0) {
+                g.slot = (g.slot + delta) % 12;
+            } else {
+                g.modTo = (g.modTo + delta) % 12;
+            }
+        }
+        if (fireUp || fireDown) {
+            if (g.modFocus == 0) {
+                g.minorView = !g.minorView;
+            } else {
+                g.modMinor = !g.modMinor;
+            }
+        }
     }
 
     if (!ks.fn && pollTypedKeys()) gDirty = true;
@@ -542,6 +555,8 @@ void loop()
             g.metroOn   = !g.metroOn;
             g.beat      = -1;
             gNextBeatUs = micros();
+        } else if (g.page == 6) {
+            g.modFocus = 1 - g.modFocus;
         } else if (g.page == 5) {
             if (g.progView == 0) {
                 if (g.progStyle == kProgStyleCount - 1) {

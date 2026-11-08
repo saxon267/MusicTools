@@ -21,19 +21,20 @@ const UI = (() => {
     };
   }
 
+  // GruvBox Dark
   const COL = {
-    bg: '#0e1116',
-    fg: '#e8ecf1',
-    dim: '#84909e',
-    line: '#282f3a',
-    selBg: '#262e3a',
-    hub: '#14181e',
-    ink: '#101216',
-    chordDim: '#788494',
-    accent: '#96b2d0',
-    footer: '#687484',
-    panelChord: '#d2dae4',
-    minorLabel: '#e4e8ee',
+    bg: '#282828',
+    fg: '#ebdbb2',
+    dim: '#928374',
+    line: '#504945',
+    selBg: '#3c3836',
+    hub: '#1d2021',
+    ink: '#282828',
+    chordDim: '#a89984',
+    accent: '#fabd2f',
+    footer: '#928374',
+    panelChord: '#ebdbb2',
+    minorLabel: '#d5c4a1',
   };
 
   const F_TINY = '8px "Lucida Console", Consolas, monospace'; // Font0
@@ -232,7 +233,7 @@ const UI = (() => {
     if (target) textTL(6, 82, `V7 of ${MT.noteName(target)}`, F_TINY, COL.accent);
 
     textTL(6, 100, 'ENTER: play', F_TINY, COL.footer);
-    textTL(6, 110, 'BACKSPACE: edit', F_TINY, '#545e6c');
+    textTL(6, 110, 'BACKSPACE: edit', F_TINY, '#7c6f64');
 
     d.strokeStyle = COL.line;
     d.beginPath();
@@ -287,7 +288,7 @@ const UI = (() => {
 
     const first = mn > 3 ? mn : 1;
 
-    d.strokeStyle = '#404856';
+    d.strokeStyle = '#504945';
     d.lineWidth = 1;
     for (let i = 0; i < 6; i++) {
       d.beginPath();
@@ -303,7 +304,7 @@ const UI = (() => {
     }
 
     if (first === 1) {
-      d.fillStyle = '#96a0b0';
+      d.fillStyle = '#a89984';
       d.fillRect(x - 1, y - 1, 5 * dx + 2, 3);
     } else {
       textTL(x - 15, y + 1, `${first}fr`, F_TINY, COL.dim);
@@ -411,7 +412,7 @@ const UI = (() => {
     for (let i = 0; i < t.n; i++) {
       const cx = 10 + colW * i + colW / 2;
       // every pitch class owns a hue, so the scale reads as a slice of a rainbow
-      textMid(cx, 44, MT.noteName(notes[i]), F_MID, hsv(MT.pitchClass(notes[i]) * 30, 0.55, 0.95));
+      textMid(cx, 44, MT.noteName(notes[i]), F_MID, hsv(MT.pitchClass(notes[i]) * 30, 0.50, 0.85));
       textMid(cx, 56, MT.degreeLabel(notes[i], t.degrees[i]), F_TINY, COL.dim);
     }
 
@@ -429,12 +430,12 @@ const UI = (() => {
       for (let i = 0; i < t.n; i++) if (MT.pitchClass(notes[i]) === pc) deg = i;
 
       if (deg >= 0) {
-        d.fillStyle = hsv(pc * 30, 0.82, 0.72);
+        d.fillStyle = hsv(pc * 30, 0.62, 0.62);
         d.beginPath();
         d.roundRect(x, 62, 16, 26, 2);
         d.fill();
       } else {
-        d.strokeStyle = hsv(pc * 30, 0.45, 0.2);
+        d.strokeStyle = hsv(pc * 30, 0.35, 0.26);
         d.lineWidth = 1;
         d.beginPath();
         d.roundRect(x, 62, 16, 26, 2);
@@ -442,7 +443,7 @@ const UI = (() => {
       }
 
       const label = deg >= 0 ? MT.noteName(notes[deg]) : MT.noteName(MT.pcToNote(pc, prefFlat));
-      textMid(x + 8, 70, label, F_TINY, deg >= 0 ? COL.ink : '#58626f');
+      textMid(x + 8, 70, label, F_TINY, deg >= 0 ? COL.ink : '#928374');
       if (deg >= 0) textMid(x + 8, 81, MT.degreeLabel(notes[deg], t.degrees[deg]), '7px Consolas, monospace', COL.ink);
     }
 
@@ -468,7 +469,7 @@ const UI = (() => {
         d.fill();
       }
       const w = measure(names[i], F_TINY);
-      textTL(x + (34 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#58626f');
+      textTL(x + (34 - w) / 2, 3, names[i], F_TINY, on ? COL.fg : '#928374');
     }
     d.strokeStyle = COL.line;
     d.beginPath();
@@ -506,12 +507,12 @@ const UI = (() => {
       const on = st.beat === i;
       const first = (p.accents & (1 << i)) !== 0;
       if (on) {
-        d.fillStyle = first ? '#e6785a' : COL.accent;
+        d.fillStyle = first ? '#fb4934' : COL.accent;
         d.beginPath();
         d.arc(x, 58, 7, 0, Math.PI * 2);
         d.fill();
       } else {
-        d.strokeStyle = first ? '#78463c' : '#46505f';
+        d.strokeStyle = first ? '#6a3a2f' : '#504945';
         d.lineWidth = 1.2;
         d.beginPath();
         d.arc(x, 58, 6, 0, Math.PI * 2);
@@ -519,9 +520,9 @@ const UI = (() => {
       }
     }
 
-    textTL(12, 76, st.metroOn ? 'PLAYING' : 'STOPPED', F_TINY, st.metroOn ? '#78c88c' : COL.dim);
-    textTL(12, 90, 'ENTER: start / stop', F_TINY, '#606a78');
-    textTL(12, 100, 'Fn+<> tempo   Fn+^v style', F_TINY, '#606a78');
+    textTL(12, 76, st.metroOn ? 'PLAYING' : 'STOPPED', F_TINY, st.metroOn ? '#b8bb26' : COL.dim);
+    textTL(12, 90, 'ENTER: start / stop', F_TINY, '#928374');
+    textTL(12, 100, 'Fn+<> tempo   Fn+^v style', F_TINY, '#928374');
   };
 
   
@@ -609,7 +610,7 @@ const UI = (() => {
         for (let b = 0; b < beats; b++) {
           const on = b === st.beat;
           d.fillStyle = on ? COL.accent : 'transparent';
-          d.strokeStyle = '#46505f';
+          d.strokeStyle = '#504945';
           d.beginPath();
           d.arc(dotX + b * gap, 32, 2, 0, Math.PI * 2);
           on ? d.fill() : d.stroke();
@@ -623,11 +624,11 @@ const UI = (() => {
     }
 
     if (st.progEdit) {
-      textTL(6, 96, 'Fn+<> chord   ENTER play', F_TINY, '#606a78');
+      textTL(6, 96, 'Fn+<> chord   ENTER play', F_TINY, '#928374');
     } else {
       textTL(6, 96, st.progPlaying ? 'PLAYING' : 'STOPPED', F_TINY,
-             st.progPlaying ? '#78c88c' : COL.dim);
-      textTL(70, 96, 'ENTER play   BKSP back', F_TINY, '#606a78');
+             st.progPlaying ? '#b8bb26' : COL.dim);
+      textTL(70, 96, 'ENTER play   BKSP back', F_TINY, '#928374');
     }
 
     const pos = `${st.progPos + 1}/${len}`;
@@ -639,47 +640,107 @@ const UI = (() => {
 
   const drawModPage = (st) => {
     const d = C.ctx;
-    const info = MOD.analyse(st.slot, st.modTo, st.modMinor);
+    const info = MOD.analyse(st.slot, st.minorView, st.modTo, st.modMinor);
 
-    const fromName = MT.noteName(MT.majorTonic(st.slot));
-    const toName = MOD.chordName(info.toTonic, 0) + (info.toMinor ? 'm' : '');
-    textTL(6, 12, `${fromName}  >  ${toName}`, F_MID, COL.fg);
-    textTL(W - 6 - measure(info.relation, F_TINY), 18, info.relation, F_TINY, COL.accent);
+    const sn = MOD.chordName(info.fromTonic, 0) + (st.minorView ? 'm' : '');
+    const tn = MOD.chordName(info.toTonic, 0) + (st.modMinor ? 'm' : '');
+    const srcOn = st.modFocus === 0;
 
-    const ad = Math.abs(info.distance);
-    textTL(6, 30, `${ad} fifth${ad === 1 ? '' : 's'} apart`, F_TINY, COL.dim);
+    d.fillStyle = srcOn ? COL.selBg : COL.bg;
+    d.beginPath();
+    d.roundRect(6, 12, 40, 18, 3);
+    d.fill();
+    d.strokeStyle = srcOn ? COL.accent : COL.line;
+    d.lineWidth = 1;
+    d.stroke();
+    textMid(26, 21, sn, F_MID, srcOn ? COL.accent : COL.dim);
 
-    if (!info.pivots.length) textTL(6, 44, 'no shared triad', F_TINY, COL.dim);
-    info.pivots.slice(0, 4).forEach((pv, i) => {
-      const y = 44 + i * 13;
-      textTL(10, y, MOD.chordName(pv.root, pv.qual), F_MID, COL.fg);
-      const fn = `${MT.romanNumeral(pv.fromDeg, false)} > ${MT.romanNumeral(pv.toDeg, info.toMinor)}`;
-      textTL(66, y + 5, fn, F_TINY, COL.dim);
+    textMid(52, 21, '>', F_TINY, COL.dim);
+
+    d.fillStyle = srcOn ? COL.bg : COL.selBg;
+    d.beginPath();
+    d.roundRect(60, 12, 40, 18, 3);
+    d.fill();
+    d.strokeStyle = srcOn ? COL.line : COL.accent;
+    d.stroke();
+    textMid(80, 21, tn, F_MID, srcOn ? COL.dim : COL.accent);
+
+    textTL(W - 6 - measure(info.relation, F_TINY), 18, info.relation, F_TINY, COL.dim);
+
+    const dir = info.distance >= 0 ? 1 : -1;
+    const steps = Math.abs(info.distance);
+    for (let i = 0; i < 12; i++) {
+      const x = 22 + i * 17;
+      if (i === st.slot) {
+        d.fillStyle = COL.accent;
+        d.beginPath();
+        d.arc(x, 40, 4, 0, Math.PI * 2);
+        d.fill();
+      } else if (i === st.modTo) {
+        d.fillStyle = COL.fg;
+        d.beginPath();
+        d.arc(x, 40, 4, 0, Math.PI * 2);
+        d.fill();
+      } else {
+        let onPath = false;
+        for (let k = 1; k < steps; k++) {
+          if ((((st.slot + dir * k) % 12) + 12) % 12 === i) onPath = true;
+        }
+        if (onPath) {
+          d.fillStyle = COL.line;
+          d.beginPath();
+          d.arc(x, 40, 2, 0, Math.PI * 2);
+          d.fill();
+        } else {
+          d.strokeStyle = COL.line;
+          d.lineWidth = 1;
+          d.beginPath();
+          d.arc(x, 40, 2, 0, Math.PI * 2);
+          d.stroke();
+        }
+      }
+    }
+
+    textTL(8, 50, 'SHARED', F_TINY, COL.dim);
+    const fh = `in ${sn}`;
+    const th = `in ${tn}`;
+    textTL(172 - measure(fh, F_TINY), 50, fh, F_TINY, COL.dim);
+    textTL(232 - measure(th, F_TINY), 50, th, F_TINY, COL.dim);
+
+    if (!info.pivots.length) textTL(8, 63, 'none: use the dominant', F_TINY, '#7c6f64');
+
+    info.pivots.slice(0, 3).forEach((pv, i) => {
+      const y = 63 + i * 12;
+      textTL(8, y - 2, MOD.chordName(pv.root, pv.qual), F_MID, COL.fg);
+      const fr = MT.romanNumeral(pv.fromDeg, st.minorView);
+      const tr = MT.romanNumeral(pv.toDeg, st.modMinor);
+      textTL(172 - measure(fr, F_TINY), y + 2, fr, F_TINY, COL.dim);
+      textTL(232 - measure(tr, F_TINY), y + 2, tr, F_TINY, COL.accent);
     });
 
     const dom = MOD.chordName(info.domRoot, 0) + '7';
-    textTL(8, 100, 'V7', F_TINY, COL.dim);
-    textTL(38, 100, `${dom}  >  ${toName}`, F_TINY, COL.accent);
+    textTL(8, 104, 'V7', F_TINY, COL.dim);
+    textTL(40, 104, `${dom} > ${tn}`, F_TINY, COL.accent);
 
     const ii = MOD.chordName(info.iiRoot, 0) + 'm7';
-    textTL(8, 112, 'ii-V', F_TINY, COL.dim);
-    textTL(38, 112, `${ii} ${dom}  >  ${toName}`, F_TINY, COL.panelChord);
+    textTL(8, 116, 'ii-V', F_TINY, COL.dim);
+    textTL(40, 116, `${ii} ${dom} > ${tn}`, F_TINY, COL.fg);
   };
 
   const drawVolumeBar = (st) => {
     if (!st.showVolume) return;
     const d = C.ctx;
-    d.fillStyle = '#1a202a';
+    d.fillStyle = '#3c3836';
     d.beginPath();
     d.roundRect(8, 98, 224, 20, 5);
     d.fill();
-    d.strokeStyle = '#3c485a';
+    d.strokeStyle = '#504945';
     d.lineWidth = 1;
     d.stroke();
 
     textTL(14, 104, 'VOL', F_TINY, COL.dim);
 
-    d.fillStyle = '#12161c';
+    d.fillStyle = '#282828';
     d.beginPath();
     d.roundRect(46, 104, 130, 8, 4);
     d.fill();
@@ -703,7 +764,7 @@ const UI = (() => {
       'TAB tempo  Fn+<> root ^v ENTER',
       'TAB prog  Fn+<> tempo  ^v style',
       'TAB mod  Fn+<> move  ^v pick',
-      'TAB circ  Fn+<> target  ^v maj/min',
+      'Fn+<> key  ^v mode  ENTER switch',
     ];
     const d = C.ctx;
     d.strokeStyle = COL.line;
@@ -716,7 +777,7 @@ const UI = (() => {
 
     const bat = st.battery < 0 ? '--' : `${st.battery}%`;
     const w = measure(bat, F_TINY);
-    textTL(W - 5 - w, 125, bat, F_TINY, st.playing ? '#78c88c' : COL.footer);
+    textTL(W - 5 - w, 125, bat, F_TINY, st.playing ? '#b8bb26' : COL.footer);
   };
 
   const drawSplash = () => {
@@ -733,7 +794,7 @@ const UI = (() => {
       d.arc(cx, cy, 40, a0 * RAD, a1 * RAD);
       d.arc(cx, cy, 22, a1 * RAD, a0 * RAD, true);
       d.closePath();
-      d.fillStyle = hsv(i * 30, 0.9, 0.92);
+      d.fillStyle = hsv(i * 30, 0.70, 0.82);
       d.fill();
     }
     d.strokeStyle = '#ffffff';

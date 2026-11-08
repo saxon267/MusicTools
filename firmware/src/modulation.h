@@ -15,10 +15,11 @@ struct ModInfo {
     const char* relation;  // short label for the header
     int         nPivot;
     Pivot       pivots[7];
+    mt::Note    fromTonic;
     mt::Note    toTonic;
     bool        toMinor;
     mt::Note    domRoot;  // V7 of the target
     mt::Note    iiRoot;   // ii7 of the target
 };
 
-void modAnalyse(int fromSlot, int toSlot, bool toMinor, ModInfo& out);
+void modAnalyse(int fromSlot, bool fromMinor, int toSlot, bool toMinor, ModInfo& out);
