@@ -320,7 +320,7 @@ pio run -t upload      # 直接烧写
 
 ## 八、配套工具
 
-`CardputerTools/` 是一个桌面小程序，通过串口管理 Cardputer 的 microSD 卡（浏览 / 上传 / 下载 / 删除），同样是 GruvBox Dark 界面。它需要另外刷一个桥接固件，详见 [CardputerTools/README.md](CardputerTools/README.md)。
+`CardputerTools/` 是一个桌面小程序，通过串口管理 Cardputer 的 microSD 卡（浏览 / 上传 / 下载 / 删除），同样是 GruvBox Dark 界面。它需要另外刷一个桥接固件，双击 `CardputerTools/CardputerTools.bat` 即可启动，详见 [CardputerTools/README.md](CardputerTools/README.md)。
 
 ---
 

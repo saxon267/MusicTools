@@ -30,18 +30,30 @@ pio run -t upload
 
 烧好后屏幕会显示 `SD BRIDGE / microSD ready`。
 
-### 2. 运行 PC 端工具
+### 2. 启动 PC 端工具
+
+**双击 `CardputerTools.bat`** 就行。
+
+启动器会自动做三件事：
+
+1. 找 Python 3（`python` 或 `py -3`，都没有就提示去装）
+2. 检查 `pyserial`，缺了自动装（直连失败会换阿里云镜像重试）
+3. 无参数启动时用 `pythonw` 开窗口，不留黑框
+
+参数会被原样传给程序，所以也可以拖一个快捷方式带参数：
+
+```bat
+CardputerTools.bat --port COM5    :: 直接连指定端口
+CardputerTools.bat --mock         :: 用内存假卡看界面，不需要设备
+```
+
+带参数时保留控制台窗口，方便看报错。
+
+等价的手动方式：
 
 ```bash
 pip install pyserial
-
 python CardputerTools/cardputer_sd.py --port COM5
-```
-
-不接设备也可以先看界面（内存里的假卡）：
-
-```bash
-python CardputerTools/cardputer_sd.py --mock
 ```
 
 ### 3. 操作
@@ -91,6 +103,7 @@ python CardputerTools/cardputer_sd.py --mock
 
 | 文件 | 说明 |
 |---|---|
+| `CardputerTools.bat` | 双击启动器：找 Python、装 pyserial、拉起界面 |
 | `cardputer_sd.py` | tkinter 界面 + 协议客户端 + `--mock` 假设备 |
 | `firmware/src/main.cpp` | 桥接固件（SD + 串口协议 + 一个小屏状态页） |
 | `firmware/platformio.ini` | 和 MusicTools 相同的板级配置 |
